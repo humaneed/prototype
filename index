@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HUMANEED — Prototyp</title>
+<style>
+  :root{
+    --bg:#f7f6f3;
+    --surface:#ffffff;
+    --ink:#1e2320;
+    --ink-soft:#5b625d;
+    --line:#dfdcd4;
+    --accent:#3b6e63;
+    --accent-soft:#e7efec;
+    --on-accent:#ffffff;
+    --warn:#884e27;
+    --warn-soft:#f5e9dd;
+    --warn-border:#e3c6a5;
+    --btn-disabled-bg:#b7bdb8;
+    --radius:14px;
+  }
+  /* Dark Mode (seit v0.22) — reine prefers-color-scheme-Steuerung, kein manueller Umschalter/kein
+     JS-Zustand/kein localStorage-Flag, nach dem Vorbild von HUMANEED_v8s Grundprinzip (EIN :root +
+     EIN Override-Block mit denselben Variablennamen). Bewusst NICHT wie v8s tatsächliche Umsetzung
+     übernommen: dort wurden im Lauf der Zeit 31 weitere, sich mit !important überschreibende
+     Variablen-Blöcke draufgepackt, bis der Light-Mode am Ende funktionslos war (Kommentar im
+     v8-Code: "Force dark regardless of prefers-color-scheme"). Hier bleibt es bei genau diesem
+     einen Override-Block — jede künftige Farbänderung gehört hier rein, nicht in einen weiteren Block. */
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#1c1f1c;
+      --surface:#262a26;
+      --ink:#eef0ec;
+      --ink-soft:#a3aaa4;
+      --line:#4d534d;
+      --accent:#5fa08d;
+      --accent-soft:#182420;
+      --on-accent:#0f1210;
+      --warn:#d99a68;
+      --warn-soft:#3a2c1e;
+      --warn-border:#6b4f34;
+      --btn-disabled-bg:#40453f;
+    }
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;
+    font-size:17px;
+    padding:0 0 60px 0;
+  }
+  /* Barrierefreiheit (seit v0.20): --warn von #a15c2e auf #884e27 abgedunkelt — Kontrast auf
+     --warn-soft war mit 4.3:1 knapp unter WCAG-AA (4.5:1) für normalen Text (die Gatekeeper-Erklärung
+     nutzt diese Farbkombination bei 14px, also ohne "großer Text"-Ausnahme). Jetzt 5.55:1 (und im
+     neuen Dark-Mode-Block v0.22 separat auf Kontrast geprüft: 6,95:1 auf --bg, 5,63:1 auf --warn-soft). */
+  a.skip-link{
+    position:absolute;
+    left:-999px;
+    top:auto;
+    width:1px;
+    height:1px;
+    overflow:hidden;
+    z-index:1000;
+  }
+  a.skip-link:focus{
+    position:fixed;
+    left:12px;
+    top:12px;
+    width:auto;
+    height:auto;
+    padding:12px 18px;
+    /* Bewusst FEST verdrahtet statt var(--ink)/var(--bg): der Skip-Link ist ein Overlay, das nur
+       kurz bei Tastatur-Fokus erscheint, und soll in beiden Farbschemata gleich hohen Kontrast haben.
+       var(--ink) hätte im Dark Mode zum Bug geführt (dort ist --ink hell, nicht dunkel — der Text
+       #fff wäre dann fast unlesbar auf fast-weißem Grund gewesen). Deshalb hier keine Theme-Tokens. */
+    background:#1e2320;
+    color:#ffffff;
+    border-radius:8px;
+    font-size:15px;
+    font-weight:600;
+    text-decoration:none;
+  }
+  /* Sichtbare Fokus-Ringe für Tastaturnutzung — :focus-visible statt :focus, damit reine Maus-/
+     Touch-Klicks keinen Ring zeigen, aber Tab-Navigation immer einen klaren, konsistenten erhält
+     (Browser-Default variiert stark je nach Browser/OS und war zuvor die einzige Quelle). */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  details > summary:focus-visible{
+    outline:3px solid var(--accent);
+    outline-offset:2px;
+  }
+  /* Screens erhalten beim Wechsel programmatisch den Fokus (siehe showScreen() im Skript), damit
+     Screenreader-Nutzer den neuen Inhalt vorgelesen bekommen und Tastaturnutzer nicht auf einem
+     jetzt unsichtbaren Button "gefangen" bleiben. Kein sichtbarer Ring auf dem Screen selbst nötig
+     (der Fokus ist rein programmatisch, nicht durch Tabben erreicht) — Buttons/Links darin behalten
+     ihren eigenen Fokus-Ring wie gewohnt. */
+  .screen:focus-visible{
+    outline:none;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{
+      transition:none !important;
+    }
+  }
+  header{
+    padding:28px 20px 14px 20px;
+    text-align:center;
+  }
+  header h1{
+    margin:0;
+    font-size:22px;
+    letter-spacing:0.06em;
+    font-weight:700;
+  }
+  header p{
+    margin:6px 0 0 0;
+    color:var(--ink-soft);
+    font-size:14px;
+    font-style:italic;
+  }
+  .context-greeting{
+    font-style:normal !important;
+    font-size:13px !important;
+    color:var(--accent) !important;
+    font-weight:600;
+  }
+  main{
+    max-width:560px;
+    margin:0 auto;
+    padding:0 18px;
+  }
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:20px;
+    margin-bottom:16px;
+  }
+  .tier-label{
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--accent);
+    font-weight:700;
+    margin-bottom:6px;
+  }
+  .question{
+    font-size:17px;
+    font-weight:600;
+    margin:0 0 14px 0;
+  }
+  .options{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .opt-btn{
+    display:block;
+    width:100%;
+    text-align:left;
+    padding:14px 16px;
+    border-radius:10px;
+    border:1.5px solid var(--line);
+    background:var(--surface);
+    color:var(--ink);
+    font-size:16px;
+    cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  .opt-btn:hover{border-color:var(--accent);}
+  .opt-btn.selected{
+    border-color:var(--accent);
+    background:var(--accent-soft);
+    font-weight:600;
+  }
+
+  .primary-btn{
+    display:block;
+    width:100%;
+    padding:15px 16px;
+    border-radius:10px;
+    border:none;
+    background:var(--accent);
+    color:var(--on-accent);
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+    margin-top:6px;
+  }
+  .primary-btn:disabled{
+    background:var(--btn-disabled-bg);
+    cursor:not-allowed;
+  }
+  .secondary-btn{
+    display:block;
+    width:100%;
+    padding:13px 16px;
+    border-radius:10px;
+    border:1.5px solid var(--line);
+    background:var(--surface);
+    color:var(--ink-soft);
+    font-size:15px;
+    cursor:pointer;
+    margin-top:10px;
+  }
+
+  .gatekeeper{
+    background:var(--warn-soft);
+    border:1px solid var(--warn-border);
+    color:var(--warn);
+    border-radius:10px;
+    padding:12px 14px;
+    font-size:14px;
+    margin-bottom:16px;
+  }
+
+  .intervention-title{
+    font-size:20px;
+    font-weight:700;
+    margin:4px 0 8px 0;
+  }
+  .intervention-action{
+    font-size:16px;
+    margin-bottom:10px;
+  }
+  .tag{
+    display:inline-block;
+    font-size:11px;
+    background:var(--accent-soft);
+    color:var(--accent);
+    padding:3px 8px;
+    border-radius:6px;
+    margin-left:8px;
+    vertical-align:middle;
+    font-weight:600;
+  }
+  details{
+    margin-top:10px;
+    font-size:14px;
+    color:var(--ink-soft);
+  }
+  summary{
+    cursor:pointer;
+    color:var(--accent);
+    font-weight:600;
+  }
+  details p{margin:8px 0 0 0;}
+  details ol{margin:8px 0 0 0;padding-left:20px;}
+  details ol li{margin-bottom:4px;}
+  .variation-note{font-style:italic;color:var(--ink-soft);margin-top:8px !important;}
+
+  .row{
+    display:flex;
+    gap:10px;
+  }
+  .row .opt-btn{flex:1;text-align:center;}
+
+  .dayclose-question{font-size:15px;font-style:italic;color:var(--ink-soft);font-weight:500;margin-bottom:10px;}
+  .dayclose-done{font-size:14px;color:var(--accent);font-weight:600;}
+  .dayclose-done .change-link{
+    font-weight:400;color:var(--ink-soft);text-decoration:underline;cursor:pointer;margin-left:8px;font-style:normal;
+    /* war zuvor ein <span> mit Klick-Handler — jetzt ein echtes <button>-Element (seit v0.20,
+       Barrierefreiheit: per Tastatur fokussier- und auslösbar), deshalb Browser-Button-Chrome zurücksetzen. */
+    background:none;border:none;padding:0;font-family:inherit;font-size:inherit;
+  }
+
+  .debug{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:24px;
+  }
+  .debug table{width:100%;border-collapse:collapse;}
+  .debug td,.debug th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left;}
+
+  .history-entry{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:10px;
+    padding:8px 0;
+    border-bottom:1px solid var(--line);
+    font-size:14px;
+  }
+  .history-entry:last-child{border-bottom:none;}
+  .history-entry .h-num{color:var(--ink-soft);font-size:11px;min-width:38px;line-height:1.3;}
+  .history-entry .h-main{flex:1;}
+  .history-entry .h-qualia{font-size:12px;font-weight:700;}
+  .h-qualia.better{color:var(--accent);}
+  .h-qualia.worse{color:var(--warn);}
+  .h-qualia.same{color:var(--ink-soft);}
+  .history-empty{color:var(--ink-soft);font-size:13px;}
+
+  .progress-row{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    padding:6px 0;
+    font-size:14px;
+  }
+  .progress-row .p-value{font-weight:700;color:var(--accent);min-width:34px;}
+
+  footer{
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:12px;
+    margin-top:20px;
+  }
+</style>
+</head>
+<body>
+
+<a href="#main-content" class="skip-link">Zum Hauptinhalt springen</a>
+
+<header>
+  <h1>HUMANEED</h1>
+  <p id="context-greeting" class="context-greeting" aria-live="polite"></p>
+</header>
+
+<main id="main-content" tabindex="-1">
+
+  <!-- SCREEN 1: CHECK-IN -->
+  <section id="screen-checkin" class="screen active" tabindex="-1" aria-label="Check-in">
+    <div id="checkin-list"></div>
+    <button class="primary-btn" id="btn-submit-checkin" disabled>Status erfassen</button>
+  </section>
+
+  <!-- SCREEN 2: RESULT / INTERVENTION -->
+  <section id="screen-result" class="screen" tabindex="-1" aria-label="Empfehlung">
+    <div id="gatekeeper-note" aria-live="polite"></div>
+    <div class="card">
+      <div class="tier-label" id="result-tier-label"></div>
+      <div class="intervention-title" id="result-title"></div>
+      <div class="intervention-action" id="result-action"></div>
+      <details>
+        <summary>So geht's genauer</summary>
+        <ol id="result-steps"></ol>
+        <p id="result-variation" class="variation-note"></p>
+      </details>
+      <details>
+        <summary>Warum?</summary>
+        <p id="result-why"></p>
+      </details>
+    </div>
+    <button class="primary-btn" id="btn-done">Erledigt</button>
+    <button class="secondary-btn" id="btn-skip">Nicht jetzt</button>
+  </section>
+
+  <!-- SCREEN 3: QUALIA FEEDBACK -->
+  <section id="screen-feedback" class="screen" tabindex="-1" aria-label="Rückmeldung">
+    <div class="card">
+      <div class="question" id="feedback-question">Wie fühlst du dich jetzt, im Vergleich zu eben?</div>
+      <div class="row" role="radiogroup" aria-labelledby="feedback-question">
+        <button class="opt-btn" data-qualia="-1" role="radio" aria-checked="false">Schlechter</button>
+        <button class="opt-btn" data-qualia="0" role="radio" aria-checked="false">Gleich</button>
+        <button class="opt-btn" data-qualia="1" role="radio" aria-checked="false">Besser</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN 4: SUMMARY -->
+  <section id="screen-summary" class="screen" tabindex="-1" aria-label="Fortschritt und Verlauf">
+    <div class="card">
+      <div class="question">Struktur angepasst.</div>
+      <p id="summary-text" style="color:var(--ink-soft);font-size:15px;"></p>
+    </div>
+    <div class="card" id="progress-card">
+      <div class="tier-label">Dein Fortschritt</div>
+      <div id="progress-list"></div>
+    </div>
+    <div class="card" id="dayclose-card">
+      <div class="tier-label">Tagesabschluss</div>
+      <div id="dayclose-content"></div>
+    </div>
+    <div class="card" id="history-card">
+      <div class="tier-label">Dein Verlauf</div>
+      <p style="color:var(--ink-soft);font-size:13px;margin-top:-6px;">Wird lokal in diesem Browser gespeichert (kein Server, kein Konto) — bleibt über Neuladen und Tage hinweg erhalten, bis du ihn zurücksetzt.</p>
+      <div id="history-list"></div>
+      <div id="backup-controls" style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="secondary-btn" id="btn-export-data">Daten exportieren</button>
+        <button class="secondary-btn" id="btn-import-data">Daten importieren</button>
+        <input type="file" id="import-file-input" accept="application/json" style="display:none;">
+      </div>
+      <div id="import-status" style="font-size:13px;margin-top:8px;" aria-live="polite"></div>
+    </div>
+    <button class="primary-btn" id="btn-restart">Neuer Zyklus</button>
+    <div class="debug">
+      <details>
+        <summary>Debug: aktuelle Gewichtungen</summary>
+        <table id="weights-table"></table>
+      </details>
+      <button class="secondary-btn" id="btn-reset-all" style="margin-top:14px;">Alle gespeicherten Daten löschen</button>
+    </div>
+  </section>
+
+</main>
+
+<footer>Prototyp · Core Loop · v0.22 · Dark Mode (Design-Tokens, automatisch nach Systemeinstellung) · kein Server, kein Konto</footer>
+
+<script>
+/* =========================================================
+   HUMANEED — Core Loop Prototyp
+   Bottom-up: Check-in -> Gatekeeper -> 1 Intervention -> Qualia -> Anpassung
+   Kein Backend, kein Konto — aber seit v0.7 echte Persistenz via localStorage im selben Browser,
+   damit sich Gewichtung und Verlauf über Tage hinweg individuell einschleifen können.
+   ========================================================= */
+
+// ---- 1. Die sechs Ebenen (Tiers) -------------------------
+// 5-stufige Skala statt 3 (feineres Bild vom Ist-Zustand), weiterhin direkte Auswahlbuttons statt Regler.
+const TIERS = [
+  { id:0, name:"Biologie",  question:"Wie fit bist du gerade (Schlaf & Energie)?",
+    options:[
+      {label:"Erschöpft", value:10},
+      {label:"Eher müde", value:30},
+      {label:"Geht so", value:50},
+      {label:"Ziemlich fit", value:70},
+      {label:"Topfit & energiegeladen", value:90}
+    ]},
+  { id:1, name:"Emotion",   question:"Wie ruhig und sicher fühlst du dich gerade?",
+    options:[
+      {label:"Sehr angespannt / gestresst", value:10},
+      {label:"Eher unruhig", value:30},
+      {label:"Neutral", value:50},
+      {label:"Eher ruhig", value:70},
+      {label:"Ruhig & sicher", value:90}
+    ]},
+  { id:2, name:"Sozial",    question:"Wie verbunden fühlst du dich gerade mit anderen?",
+    options:[
+      {label:"Isoliert", value:10},
+      {label:"Eher distanziert", value:30},
+      {label:"Neutral", value:50},
+      {label:"Eher verbunden", value:70},
+      {label:"Verbunden & gesehen", value:90}
+    ]},
+  { id:3, name:"Kognition", question:"Wie ist dein Fokus gerade?",
+    options:[
+      {label:"Sehr schwer zu fokussieren", value:10},
+      {label:"Eher zerstreut", value:30},
+      {label:"Normal", value:50},
+      {label:"Eher klar", value:70},
+      {label:"Voll da & klar", value:90}
+    ]},
+  { id:4, name:"Kompetenz", question:"Traust du dir gerade zu, Dinge anzugehen?",
+    options:[
+      {label:"Blockiert / überfordert", value:10},
+      {label:"Eher unsicher", value:30},
+      {label:"Normal", value:50},
+      {label:"Eher zuversichtlich", value:70},
+      {label:"Im Flow / zuversichtlich", value:90}
+    ]},
+  { id:5, name:"Bedeutung", question:"Spürst du gerade Sinn in dem, was du tust?",
+    options:[
+      {label:"Losgelöst / leer", value:10},
+      {label:"Eher fraglich", value:30},
+      {label:"Neutral", value:50},
+      {label:"Eher stimmig", value:70},
+      {label:"Klar verbunden mit meinem Warum", value:90}
+    ]}
+];
+
+// Kurzer "Warum" Satz pro Tier (Meta-Prinzipien im Hintergrund, siehe Kapitel VI der Projekt-Doku)
+const TIER_WHY = {
+  0: "Der Körper ist nicht Objekt, sondern Träger des Bewusstseins (Merleau-Ponty). Diese Handlung pflegt das primäre Medium, nicht nur eine Maschine.",
+  1: "Dein Nervensystem trifft ständig Vorhersagen über Sicherheit (Predictive Processing, Friston). Diese Handlung ist ein kleiner Beweis: Du bist jetzt sicher.",
+  2: "Soziale Co-Regulation aktiviert das Oxytocin-System und senkt die Amygdala-Reaktivität — dein Nervensystem synchronisiert sich mit einem anderen.",
+  3: "Die App erzwingt nichts, sie entfernt Reibung (Wu Wei). Weniger Reize, mehr synaptische Kapazität für das, was zählt.",
+  4: "Bewusste Wiederholung stabilisiert dein dynamisches Ordnungszentrum — Kompetenz entsteht durch Handeln, nicht durch Zureden.",
+  5: "Unstrukturierte Zeit ist neurobiologisch notwendig für das Default Mode Network (Scholé) — Sinn entsteht nicht im Tun, sondern im Innehalten."
+};
+
+// ---- 2. Interventions-Inventar (30, tier-getaggt, alle final bestätigt) ---------
+// #01–#20: Herkunft/Status siehe frühere Versionshinweise im Projekt (`claude/humaneed_prototype_notes.md`).
+// #21–#30 kamen in v0.9 dazu (Julians Wunsch nach "umfangreicherem Inventar", damit sich Vorschläge
+// seltener wiederholen), sinngemäß aus dem alten HUMANEED_v8-Manuskript bzw. dem Epigenetik-Kapitel
+// des Blueprints abgeleitet. Alle 30 wurden am 2026-08-16 von Julian final bestätigt — proposal:false
+// durchgehend. Das "proposal"-Feld bleibt im Datenmodell für künftige Erweiterungen erhalten.
+//
+// steps/variation (neu seit v0.9): "Mehr Tiefe pro Vorschlag" — der EINE gezeigte Vorschlag pro
+// Zyklus bekommt jetzt 2–3 knappe Schritte plus eine Variante für den Fall, dass die Standardform
+// gerade nicht geht. Es wird weiterhin nur eine Intervention pro Zyklus angezeigt (Kernprinzip
+// bleibt unverändert) — nur die Tiefe DIESES einen Vorschlags wächst.
+//
+// bestTime: grobe Tageszeit-/Kontext-Passung fürs weiche Gewichten (siehe pickIntervention).
+// "any" = passt immer, "morning"/"evening" = leichte Präferenz zur passenden Tageszeit,
+// "weekend" = leichte Präferenz am Wochenende. Nichts wird deshalb ausgeblendet (Wu-Wei-Prinzip),
+// nur bei Gleichstand bevorzugt vorgeschlagen.
+const INTERVENTIONS = [
+  { id:"01", tier:1, title:"Der Schwellen-Puffer", action:"5 Minuten vor der Haustür innehalten, ausatmen, die Arbeit gedanklich schließen.", proposal:false, bestTime:"evening",
+    steps:["Vor der Tür stehen bleiben, bevor du reingehst.", "Drei Mal bewusst tief ausatmen.", "Dir kurz sagen: 'Das war die Arbeit, jetzt kommt der Rest.'"],
+    variation:"Keine eigene Haustür gerade? Geht auch im Auto oder auf der letzten Treppenstufe.",
+    deepen:{ action:"Diesmal zusätzlich einmal um den Block gehen, bevor du reingehst — als längerer Übergang.",
+      steps:["Wie gewohnt vor der Tür stehen bleiben.", "Einmal ums Haus oder den Block gehen, bevor du reingehst.", "Erst danach wirklich 'ankommen' und reingehen."] } },
+  { id:"02", tier:1, title:"Die ersten 30 Minuten", action:"Keine Bildschirme in den ersten 30 Minuten des Tages.", proposal:false, bestTime:"morning",
+    steps:["Handy bewusst außer Reichweite lassen beim Aufwachen.", "Erst anziehen, trinken oder rausschauen, bevor der erste Blick aufs Display kommt.", "Nach 30 Minuten ganz normal weitermachen."],
+    variation:"Muss der Wecker aufs Handy? Auch 'nur checken, dann sofort weglegen' ist schon ein Kompromiss.",
+    deepen:{ action:"Diesmal 60 statt 30 Minuten ganz ohne Bildschirm.",
+      steps:["Handy wie gewohnt außer Reichweite lassen.", "Die ersten 60 statt 30 Minuten ganz ohne Display verbringen.", "Danach bewusst und nicht hastig einsteigen."] } },
+  { id:"03", tier:3, title:"Der Gedanken-Parkplatz", action:"Schreib offene To-Dos kurz auf, um dein Arbeitsgedächtnis zu entlasten.", proposal:false, bestTime:"evening",
+    steps:["Zettel oder Notiz-App aufmachen.", "Alles aufschreiben, was gerade im Kopf 'herumschwirrt' — ungefiltert.", "Liste einfach liegen lassen, nicht sofort abarbeiten."],
+    variation:"Kein Stift zur Hand? Auch eine Sprachnotiz an dich selbst funktioniert.",
+    deepen:{ action:"Diesmal bei jedem Punkt zusätzlich kurz notieren, wann du dich darum kümmerst — nicht ausführen, nur einplanen.",
+      steps:["Wie gewohnt alles aufschreiben, was im Kopf herumschwirrt.", "Bei jedem Punkt kurz einen groben Zeitpunkt notieren (heute, diese Woche, später).", "Die Liste danach wieder liegen lassen — nichts sofort abarbeiten."] } },
+  { id:"04", tier:3, title:"Die 1-Tab-Regel", action:"Nur einen Tab für die nächsten 45 Minuten geöffnet lassen.", proposal:false, bestTime:"any",
+    steps:["Alle Tabs bis auf einen schließen.", "Timer auf 45 Minuten stellen.", "Neue Tabs erst nach Ablauf des Timers öffnen."],
+    variation:"Brauchst du wirklich zwei Tabs für die Aufgabe? Dann die Ausnahme bewusst erlauben, aber alles andere zu.",
+    deepen:{ action:"Diesmal die 1-Tab-Regel für den ganzen restlichen Vormittag statt nur 45 Minuten.",
+      steps:["Alle Tabs bis auf einen schließen — wie gewohnt.", "Diesmal bis zur Mittagspause dabei bleiben.", "Neue Tabs bewusst erst danach öffnen."] } },
+  { id:"05", tier:5, title:"Das leise Wochenende", action:"Plane einen halben Tag bewusst frei — nichts vornehmen.", proposal:false, bestTime:"weekend",
+    steps:["Einen halben Tag im Kalender bewusst leer lassen.", "Keine Verabredungen, keine Aufgabenliste für diese Zeit.", "Wenn Langeweile kommt: sie zulassen statt sie sofort zu füllen."],
+    variation:"Ein ganzer halber Tag ist zu viel? Auch 2 Stunden bewusst frei sind ein Anfang.",
+    deepen:{ action:"Diesmal ein ganzer Tag bewusst frei statt nur ein halber.",
+      steps:["Einen ganzen Tag im Kalender bewusst leer lassen.", "Auch spontane Anfragen für diesen Tag freundlich absagen.", "Den Tag ohne festen Plan auf dich zukommen lassen."] } },
+  { id:"06", tier:0, title:"Reduzierte Reibung", action:"Kleidung für morgen bereitlegen, Frühstück standardisieren.", proposal:false, bestTime:"evening",
+    steps:["Kleidung für morgen schon heute Abend bereitlegen.", "Ein Frühstück überlegen, das du diese Woche einfach wiederholen kannst.", "Kaffee-/Teemaschine startklar für morgen machen."],
+    variation:"Wenig Zeit? Reicht auch nur ein Teil, z. B. nur die Kleidung.",
+    deepen:{ action:"Diesmal für die ganze Woche statt nur für morgen vorbereiten.",
+      steps:["Kleidung für mehrere Tage im Voraus bereitlegen.", "Ein Frühstück wählen, das die ganze Woche funktioniert.", "Einmal einkaufen, was für die Woche fehlt."] } },
+  { id:"07", tier:1, title:"Der physiologische Reset", action:"Kaltes Wasser über die Handgelenke laufen lassen, langsam ausatmen.", proposal:false, bestTime:"any",
+    steps:["Kaltes Wasser aufdrehen.", "Handgelenke 20–30 Sekunden darunterhalten.", "Dabei langsam und bewusst ausatmen."],
+    variation:"Kein Wasserhahn in der Nähe? Ein kaltes Getränk oder offenes Fenster tut es notfalls auch.",
+    deepen:{ action:"Diesmal das kalte Wasser über die Unterarme bis zum Ellbogen laufen lassen, für eine Minute.",
+      steps:["Kaltes Wasser aufdrehen.", "Unterarme bis zum Ellbogen 60 Sekunden darunterhalten.", "Dabei bewusst langsamer aus- als einatmen."] } },
+  { id:"08", tier:3, title:"Der Graustufen-Modus", action:"Smartphone-Display für die nächste Zeit auf Graustufen stellen.", proposal:false, bestTime:"any",
+    steps:["Bildschirmzeit-Einstellungen öffnen.", "Graustufen-Filter aktivieren.", "Für den Rest des Zyklus so lassen."],
+    variation:"Keine Lust auf dauerhaft? Auch nur für die nächste Stunde reicht als Experiment.",
+    deepen:{ action:"Diesmal den Graustufen-Modus für den ganzen Tag anlassen statt nur für diesen Zyklus.",
+      steps:["Graustufen-Filter wie gewohnt aktivieren.", "Diesmal bewusst bis zum Abend so lassen.", "Am Abend kurz merken, ob sich etwas verändert hat."] } },
+  { id:"09", tier:0, title:"Low-Light-Abend", action:"90 Minuten vor dem Schlafen helles Licht dimmen.", proposal:false, bestTime:"evening",
+    steps:["Deckenlicht aus, stattdessen eine kleine Lampe.", "Bildschirm-Helligkeit runterdrehen oder Night-Modus an.", "Falls möglich: die letzte Stunde ganz ohne Screen."],
+    variation:"Kein Dimmer da? Auch eine einzelne warme Lampe statt Deckenlicht reicht.",
+    deepen:{ action:"Diesmal schon 2 Stunden vorher dimmen, mit einer bildschirmfreien Aktivität zum Ausklang.",
+      steps:["Schon 2 Stunden vor dem Schlafen das helle Licht dimmen.", "Eine bildschirmfreie Aktivität für die letzte Stunde wählen (Lesen, Dehnen, Gespräch).", "Das Ritual bewusst bis zum Schlafengehen durchhalten."] } },
+  { id:"10", tier:0, title:"Die +1-Regel", action:"Beim Verlassen eines Raums einen Gegenstand mitnehmen, der dort nicht hingehört.", proposal:false, bestTime:"any",
+    steps:["Kurz umschauen, bevor du den Raum verlässt.", "Genau einen Gegenstand mitnehmen, der eigentlich woanders hingehört.", "Ihn direkt an seinen Platz bringen."],
+    variation:"Kein Raumwechsel gerade? Nimm dir einen Gegenstand auf deinem Schreibtisch vor.",
+    deepen:{ action:"Diesmal drei Gegenstände statt nur einen mitnehmen.",
+      steps:["Kurz umschauen, bevor du den Raum verlässt.", "Diesmal bis zu drei Gegenstände mitnehmen, die woanders hingehören.", "Alle direkt an ihren Platz bringen."] } },
+  { id:"11", tier:1, title:"Der weite Blick", action:"2 Minuten in die Ferne schauen, den Blick weit werden lassen.", proposal:false, bestTime:"any",
+    steps:["Ans Fenster stellen oder nach draußen gehen.", "Auf den am weitesten entfernten Punkt schauen, den du siehst.", "2 Minuten lang, Blick weich und unfokussiert."],
+    variation:"Kein Fenster mit Weitblick? Auch der höchste sichtbare Punkt im Raum hilft.",
+    deepen:{ action:"Diesmal 5 statt 2 Minuten, wenn möglich draußen statt am Fenster.",
+      steps:["Wenn möglich nach draußen gehen statt nur ans Fenster.", "Auf einen weit entfernten Punkt schauen, Blick weich lassen.", "5 statt 2 Minuten dabei bleiben."] } },
+  { id:"12", tier:1, title:"Der physische Anker", action:"Aufrecht sitzen, Füße spüren, dreimal bewusst in den Bauch atmen.", proposal:false, bestTime:"any",
+    steps:["Beide Füße flach auf den Boden stellen.", "Rücken aufrichten, Schultern lockern.", "Dreimal bewusst in den Bauch statt in die Brust atmen."],
+    variation:"Kein Sitzplatz gerade? Geht auch im Stehen, Füße bewusst spüren reicht als Anker.",
+    deepen:{ action:"Die gleiche Übung, diesmal für 2 Minuten mit einem kurzen Körper-Scan von den Füßen bis zum Kopf.",
+      steps:["Beide Füße flach auf den Boden stellen, Rücken aufrichten.", "Langsam mit der Aufmerksamkeit von den Füßen bis zum Kopf wandern.", "Bei jeder Körperregion kurz bewusst entspannen."] } },
+  { id:"13", tier:4, title:"Die 24-Stunden-Regel", action:"Auf eine Anfrage antworten: „Ich prüfe das und melde mich morgen.“", proposal:false, bestTime:"any",
+    steps:["Anfrage erhalten — nicht sofort zusagen oder absagen.", "Die Standard-Antwort nutzen: 'Ich prüfe das und melde mich morgen.'", "Am nächsten Tag in Ruhe entscheiden."],
+    variation:"Muss es schneller gehen? Auch 'Ich melde mich in ein paar Stunden' ist schon ein Gewinn gegenüber sofort zusagen.",
+    deepen:{ action:"Diesmal die Regel bei einer Anfrage anwenden, die dir eigentlich schwerfällt zu verschieben — nicht nur bei einer einfachen.",
+      steps:["Bewusst eine Anfrage wählen, bei der Verschieben dir schwerfällt.", "Trotzdem die Standard-Antwort nutzen: 'Ich prüfe das und melde mich morgen.'", "Die 24 Stunden wirklich abwarten, bevor du entscheidest."] } },
+  { id:"14", tier:4, title:"Der erste Sieg", action:"Erledige die wichtigste Aufgabe als Erstes.", proposal:false, bestTime:"morning",
+    steps:["Kurz überlegen: was ist heute die eine wichtigste Sache?", "Genau die zuerst angehen, vor E-Mails oder Nebensächlichem.", "Erst danach zum Rest übergehen."],
+    variation:"Die wichtigste Aufgabe ist zu groß für 'als Erstes'? Dann nur den ersten konkreten Schritt davon zuerst machen.",
+    deepen:{ action:"Diesmal einen festen, ungestörten Zeitblock dafür reservieren, bis die Aufgabe wirklich fertig ist.",
+      steps:["Die wichtigste Aufgabe wie gewohnt zuerst wählen.", "Einen festen Zeitblock dafür reservieren, ohne Unterbrechung.", "Erst zum Rest übergehen, wenn die Aufgabe wirklich abgeschlossen ist."] } },
+  { id:"15", tier:1, title:"Der klare Cut", action:"Laptop zuklappen und aus dem Blickfeld räumen — als bewusste Trennlinie.", proposal:false, bestTime:"evening",
+    steps:["Laufende Aufgabe kurz notieren, damit sie nicht 'offen' im Kopf bleibt.", "Laptop zuklappen.", "Ihn tatsächlich aus dem Sichtfeld räumen, nicht nur zuklappen."],
+    variation:"Laptop muss erreichbar bleiben? Dann wenigstens den Bildschirm abdecken oder umdrehen.",
+    deepen:{ action:"Diesmal den Laptop in einen anderen Raum bringen statt nur aus dem Blickfeld.",
+      steps:["Laufende Aufgabe kurz notieren.", "Laptop zuklappen.", "Ihn diesmal in einen anderen Raum bringen, nicht nur aus dem Blickfeld."] } },
+  { id:"16", tier:2, title:"Der bewusste Check-in", action:"Schreib einer nahestehenden Person eine unaufgeforderte, konkrete Nachricht — kein Small Talk.", proposal:false, bestTime:"any",
+    steps:["Eine Person auswählen, an die du gerade denkst.", "Etwas Konkretes schreiben, das du an ihr schätzt oder das dir aufgefallen ist.", "Abschicken, ohne lange zu überarbeiten."],
+    variation:"Schreiben fällt schwer? Eine Sprachnachricht wirkt oft noch persönlicher.",
+    deepen:{ action:"Diesmal statt einer Nachricht direkt anrufen und wirklich fragen, wie es der Person geht.",
+      steps:["Die Person anrufen statt zu schreiben.", "Ehrlich fragen, wie es ihr gerade wirklich geht.", "Zuhören, ohne das Gespräch schnell zu beenden."] } },
+  { id:"17", tier:2, title:"Gemeinsame Ko-Regulation", action:"Verbring 5 Minuten mit einer vertrauten Person im selben Raum, ohne Bildschirm.", proposal:false, bestTime:"evening",
+    steps:["Person fragen, ob 5 Minuten Zeit ohne Handy drin sind.", "Beide Handys weglegen.", "Einfach da sein — reden oder auch schweigen ist beides okay."],
+    variation:"Niemand gerade greifbar? Ein kurzer Videoanruf statt Textnachricht kommt nah dran.",
+    deepen:{ action:"Diesmal eine ganze gemeinsame Mahlzeit ohne Bildschirme statt nur 5 Minuten.",
+      steps:["Eine gemeinsame Mahlzeit verabreden.", "Beide Handys für die ganze Zeit weglegen.", "Bewusst im gleichen Tempo essen und reden."] } },
+  { id:"18", tier:4, title:"Die Ein-Wiederholung", action:"Wiederhole heute bewusst eine kleine Handlung, die du schon einmal gut hinbekommen hast — exakt so wie beim ersten Mal.", proposal:false, bestTime:"any",
+    steps:["Kurz überlegen: was hat neulich gut geklappt?", "Genau diese Handlung heute noch einmal so ausführen.", "Bewusst wahrnehmen, dass es (wieder) funktioniert."],
+    variation:"Erinnerst du dich nicht genau? Reicht auch eine ähnliche, kleinere Version davon.",
+    deepen:{ action:"Diesmal einen größeren Erfolg wiederholen, nicht nur eine kleine Handlung.",
+      steps:["Überlegen: was hat kürzlich wirklich gut geklappt, auch wenn es größer war?", "Die zentralen Schritte davon heute bewusst wiederholen.", "Wahrnehmen, welcher Teil diesmal leichter fiel als beim ersten Mal."] } },
+  { id:"19", tier:5, title:"Der Sinn-Satz", action:"Schreib in einem Satz auf, warum das, was du heute tust, für dich zählt — ohne es zu bewerten.", proposal:false, bestTime:"any",
+    steps:["Kurz innehalten und an das denken, was heute ansteht oder anstand.", "Einen einzigen Satz aufschreiben, warum es zählt — kein Urteil.", "Den Satz einfach stehen lassen."],
+    variation:"Fällt dir kein Grund ein? Auch 'ich weiß es gerade nicht, und das ist okay' ist ein ehrlicher Satz.",
+    deepen:{ action:"Diesmal statt einem Satz einen kurzen Absatz — mit einem konkreten Beispiel.",
+      steps:["Wie gewohnt überlegen, was heute zählt.", "Diesmal einen kurzen Absatz statt nur einen Satz schreiben.", "Ein konkretes Beispiel aus dem Tag mit einbauen."] } },
+  { id:"20", tier:2, title:"Aktiv zuhören", action:"Stell einer Person heute eine echte Nachfrage und hör zu, ohne gleich zu antworten oder zu bewerten.", proposal:false, bestTime:"any",
+    steps:["Eine Frage stellen, die mehr als eine Ja/Nein-Antwort erlaubt.", "Zuhören, ohne schon die eigene Antwort vorzubereiten.", "Erst nachfragen, bevor du selbst etwas dazu sagst."],
+    variation:"Face-to-face gerade nicht möglich? Auch am Telefon funktioniert echtes Zuhören.",
+    deepen:{ action:"Diesmal das Gehörte am Ende in eigenen Worten zurückspiegeln.",
+      steps:["Wie gewohnt eine echte Frage stellen und zuhören.", "Am Ende in eigenen Worten zusammenfassen, was du gehört hast.", "Nachfragen, ob du es richtig verstanden hast."] } },
+  { id:"21", tier:0, title:"Morgenlicht", action:"Geh für 5–10 Minuten nach draußen, am besten kurz nach dem Aufstehen.", proposal:false, bestTime:"morning",
+    steps:["Direkt nach dem Aufstehen raus, auch nur auf den Balkon oder vor die Tür.", "Sonnenbrille wenn möglich weglassen.", "Kein Handy dabei — nur das Licht."],
+    variation:"Regen oder kalt? Auch ans offene Fenster stellen hilft schon etwas.",
+    deepen:{ action:"Verlängere die Zeit draußen auf 15–20 Minuten und verbinde sie mit einem kurzen Spaziergang.",
+      steps:["Wie gewohnt direkt nach dem Aufstehen raus.", "Diesmal ein kleines Stück gehen statt nur stehen zu bleiben.", "15–20 Minuten insgesamt draußen bleiben, auch bei bewölktem Himmel."] } },
+  { id:"22", tier:0, title:"4-7-8-Atmung", action:"4 Sekunden einatmen, 7 Sekunden halten, 8 Sekunden ausatmen — vier Runden.", proposal:false, bestTime:"any",
+    steps:["Durch die Nase 4 Sekunden einatmen.", "7 Sekunden die Luft halten.", "8 Sekunden langsam durch den Mund ausatmen — vier Runden wiederholen."],
+    variation:"Zählen fällt schwer? Die einfachere Box-Atmung (4 Sekunden ein, 4 halten, 4 aus, 4 halten) ist eine gute Alternative.",
+    deepen:{ action:"Die gleiche 4-7-8-Atmung, diesmal über 8–10 Runden statt 4.",
+      steps:["Durch die Nase 4 Sekunden einatmen.", "7 Sekunden die Luft halten.", "8 Sekunden langsam ausatmen — diesmal 8–10 Runden statt 4."] } },
+  { id:"23", tier:2, title:"Um Hilfe bitten", action:"Bitte heute bewusst eine Person um eine kleine Hilfe — auch wenn du es allein könntest.", proposal:false, bestTime:"any",
+    steps:["Etwas Kleines finden, wofür du Hilfe gebrauchen könntest.", "Konkret fragen statt anzudeuten.", "Die Hilfe annehmen, ohne sie sofort zu relativieren."],
+    variation:"Fällt schwer, jemanden persönlich zu fragen? Ein kurzer Anruf oder eine Nachricht reicht auch.",
+    deepen:{ action:"Diesmal um etwas bitten, das dir wirklich schwerfällt zu erbitten — nicht nur eine Kleinigkeit.",
+      steps:["Etwas finden, bei dem Hilfe zu erbitten dir eigentlich unangenehm ist.", "Trotzdem konkret danach fragen.", "Die Hilfe annehmen, ohne sie kleinzureden."] } },
+  { id:"24", tier:2, title:"Gefühle teilen", action:"Erzähl einer Person ehrlich, wie es dir gerade wirklich geht — ohne es kleinzureden.", proposal:false, bestTime:"any",
+    steps:["Eine Person wählen, der du vertraust.", "Eine Aussage machen statt einer Standard-Floskel.", "Bei der Aussage bleiben, auch wenn der Impuls kommt, sie abzuschwächen."],
+    variation:"Face-to-face zu viel? Auch schriftlich ehrlich sein wirkt.",
+    deepen:{ action:"Diesmal etwas teilen, das dir wirklich schwerfällt auszusprechen.",
+      steps:["Eine Person wählen, der du vertraust.", "Etwas teilen, das tiefer geht als beim letzten Mal.", "Bei der Aussage bleiben, auch wenn es unangenehm wird."] } },
+  { id:"25", tier:3, title:"Der Gedanken-Spaziergang", action:"10 Minuten ohne Handy spazieren gehen und die Gedanken einfach laufen lassen.", proposal:false, bestTime:"any",
+    steps:["Handy zuhause oder in der Tasche lassen — wirklich außer Reichweite.", "Ohne festes Ziel losgehen.", "Gedanken kommen und gehen lassen, nichts festhalten müssen."],
+    variation:"Kein Rausgehen möglich? Auch ein paar Minuten am Fenster stehen und bewusst nichts tun hilft.",
+    deepen:{ action:"Diesmal 20 statt 10 Minuten.",
+      steps:["Handy wie gewohnt zuhause lassen.", "Diesmal 20 statt 10 Minuten unterwegs bleiben.", "Ohne Ziel gehen, Gedanken einfach laufen lassen."] } },
+  { id:"26", tier:3, title:"Freewriting", action:"5 Minuten ohne abzusetzen aufschreiben, was gerade im Kopf ist — ohne Filter, ohne Korrektur.", proposal:false, bestTime:"any",
+    steps:["Timer auf 5 Minuten stellen.", "Stift oder Tastatur nicht absetzen, egal was rauskommt.", "Nichts durchstreichen oder korrigieren, bis der Timer klingelt."],
+    variation:"Schreiben blockiert? Auch lautes Vor-sich-hin-Reden funktioniert ähnlich.",
+    deepen:{ action:"Diesmal 15 statt 5 Minuten am Stück schreiben.",
+      steps:["Timer auf 15 statt 5 Minuten stellen.", "Ohne abzusetzen weiterschreiben, auch wenn nichts Neues kommt.", "Erst am Ende kurz durchlesen, ohne zu korrigieren."] } },
+  { id:"27", tier:4, title:"Gezieltes Üben", action:"Übe 10 Minuten gezielt genau den Teil einer Fähigkeit, der dir am schwersten fällt.", proposal:false, bestTime:"any",
+    steps:["Einen Teilbereich identifizieren, der aktuell am meisten hakt.", "10 Minuten Timer stellen, nur diesen Teil üben.", "Nach dem Timer kurz merken, was schon besser ging."],
+    variation:"Kein Timer zur Hand? Auch 'so lange, bis es einmal besser klappt' funktioniert.",
+    deepen:{ action:"Diesmal 25 Minuten statt 10, mit einer kurzen Selbst-Rückmeldung danach.",
+      steps:["Den schwierigsten Teilbereich wie gewohnt identifizieren.", "25 Minuten Timer stellen, nur diesen Teil üben.", "Danach kurz aufschreiben, was konkret besser wurde."] } },
+  { id:"28", tier:4, title:"Feedback einholen", action:"Frag eine Person konkret nach Rückmeldung zu einer Sache, die du gerade tust.", proposal:false, bestTime:"any",
+    steps:["Eine Person wählen, die die Sache kennt oder beurteilen kann.", "Eine konkrete Frage stellen statt 'wie findest du das allgemein'.", "Die Antwort annehmen, ohne sie sofort zu verteidigen."],
+    variation:"Niemand direkt greifbar? Auch schriftlich um kurzes Feedback bitten funktioniert.",
+    deepen:{ action:"Diesmal zusätzlich EINEN Punkt aus dem Feedback direkt umsetzen.",
+      steps:["Wie gewohnt konkret nach Rückmeldung fragen.", "Die Antwort annehmen, ohne sie zu verteidigen.", "Einen konkreten Punkt daraus noch heute umsetzen."] } },
+  { id:"29", tier:5, title:"Achtsamkeits-Minute", action:"60 Sekunden bewusst nur atmen und wahrnehmen, ohne etwas zu verändern.", proposal:false, bestTime:"any",
+    steps:["Timer auf 60 Sekunden stellen.", "Augen schließen oder einen festen Punkt fixieren.", "Nur wahrnehmen, was ist — ohne etwas zu bewerten oder zu ändern."],
+    variation:"60 Sekunden zu lang? Auch 20 bewusste Sekunden sind schon ein Unterschied.",
+    deepen:{ action:"Diesmal 5 bis 10 Minuten in Stille sitzen statt nur 60 Sekunden.",
+      steps:["Einen ruhigen Sitzplatz suchen, Timer auf 5–10 Minuten stellen.", "Aufmerksamkeit immer wieder sanft zum Atem zurückbringen.", "Am Ende einen Moment bewusst nachspüren, bevor du weitermachst."] } },
+  { id:"30", tier:5, title:"Anderen helfen", action:"Tu heute bewusst etwas Kleines, das nur einer anderen Person nützt, nicht dir.", proposal:false, bestTime:"any",
+    steps:["Eine kleine Gelegenheit suchen, die sich heute ohnehin ergibt.", "Sie ohne Gegenleistung zu erwarten wahrnehmen.", "Bewusst nichts davon erzählen oder posten."],
+    variation:"Fällt dir nichts Konkretes ein? Auch eine Tür aufhalten oder jemandem den Vortritt lassen zählt.",
+    deepen:{ action:"Diesmal etwas Größeres oder Wiederkehrendes anbieten statt nur eine Kleinigkeit.",
+      steps:["Eine Gelegenheit suchen, die etwas mehr Zeit oder Einsatz braucht als sonst.", "Sie ohne Gegenleistung anbieten.", "Falls es gut passt: anbieten, es öfter zu tun."] } },
+  // ---- #31–38: aus HUMANEED_v8.html gesichtet (v0.13) ----------------------------------------
+  // v8 selbst enthält keine der 15 Manuskript-Interventionen mehr (wurde durch eine 70-Skill-
+  // Gamification-Bibliothek ersetzt) — aber ein paar dieser 70 Skills sind als einzelne, in sich
+  // abgeschlossene Mikro-Praktiken eigenständig gut und decken hier noch eine Lücke ab. Bewusst NEU
+  // in unserem eigenen Ton geschrieben (volle Sätze, dasselbe steps/variation-Muster wie #01–30),
+  // nicht wörtlich aus v8 übernommen — v8s Original-Formulierungen sind knapp/stichwortartig
+  // ("Stoppe, Drei Atemzüge, ...") und hätten den einheitlichen Ton gebrochen.
+  { id:"31", tier:0, title:"Der Wasser-Check", action:"Kurz die eigene Trinkmenge checken und bei Bedarf ein großes Glas Wasser trinken.", proposal:false, bestTime:"any",
+    steps:["Kurz überlegen, wie viel du heute bisher getrunken hast.", "Ein großes Glas Wasser in Ruhe trinken.", "Das Glas danach sichtbar stehen lassen, als Erinnerung fürs nächste Mal."],
+    variation:"Kein Wasser griffbereit? Auch ein anderes ungesüßtes Getränk zählt für den Moment.",
+    deepen:{ action:"Diesmal den ganzen Tag über deine Trinkmenge im Blick behalten, nicht nur jetzt ein Glas.",
+      steps:["Wie gewohnt jetzt ein großes Glas Wasser trinken.", "Dir für den restlichen Tag 2–3 weitere feste Trinkmomente vornehmen.", "Am Abend kurz merken, ob es mehr war als sonst."] } },
+  { id:"32", tier:0, title:"Die kalte Dusche", action:"Die Dusche ganz am Ende für 30–60 Sekunden auf kalt stellen.", proposal:false, bestTime:"morning",
+    steps:["Normal warm duschen wie sonst auch.", "Am Ende das Wasser schrittweise kälter drehen.", "30–60 Sekunden bewusst kalt bleiben, dabei ruhig weiteratmen."],
+    variation:"Ganz kalt ist zu viel? Auch nur Arme oder Nacken kurz kalt abduschen wirkt schon. Erkältet oder fiebrig? Dann lieber ganz warm bleiben.",
+    deepen:{ action:"Diesmal 90 Sekunden statt 30–60 — sofern es sich gut anfühlt.",
+      steps:["Normal warm duschen wie sonst.", "Am Ende schrittweise auf kalt drehen.", "Diesmal bis zu 90 Sekunden kalt bleiben, wenn es sich stimmig anfühlt — sonst einfach bei 60 aufhören."] } },
+  { id:"33", tier:0, title:"Der Kurzschlaf", action:"Einen Wecker auf 20 Minuten stellen und dich hinlegen, auch ohne einzuschlafen.", proposal:false, bestTime:"midday",
+    steps:["Wecker exakt auf 20 Minuten stellen.", "An einem ruhigen, eher dunklen Ort hinlegen.", "Augen schließen und entspannen — es muss kein echter Schlaf sein."],
+    variation:"Kein Ort zum Hinlegen da? Auch 20 Minuten mit geschlossenen Augen im Sitzen helfen schon.",
+    deepen:{ action:"Diesmal 30 statt 20 Minuten — für eine tiefere Erholungsphase.",
+      steps:["Wecker auf 30 Minuten stellen.", "An einem ruhigen, dunklen Ort hinlegen.", "Falls echter Schlaf kommt: das ist okay, der Wecker holt dich zurück."] } },
+  { id:"34", tier:1, title:"Die Gefühls-Benennung", action:"Innehalten und die aktuelle Emotion in einem Wort benennen — laut oder für dich.", proposal:false, bestTime:"any",
+    steps:["Kurz stoppen und in dich hineinspüren.", "Die Emotion so genau wie möglich benennen, z. B. 'Ich fühle Anspannung'.", "Merken, was sich durch das Benennen allein schon verändert."],
+    variation:"Fällt dir kein genaues Wort ein? Auch eine grobe Richtung wie 'eher unangenehm' oder 'eher gut' reicht als Anfang.",
+    deepen:{ action:"Diesmal zusätzlich die Intensität einschätzen und merken, wo im Körper sich die Emotion zeigt.",
+      steps:["Die Emotion wie gewohnt benennen.", "Die Intensität auf einer Skala von 1 bis 10 einschätzen.", "Kurz spüren, wo im Körper sich das Gefühl bemerkbar macht."] } },
+  { id:"35", tier:1, title:"Der Kontakt zur Natur", action:"10 Minuten an einen grünen, natürlichen Ort gehen und bewusst mit allen Sinnen wahrnehmen.", proposal:false, bestTime:"any",
+    steps:["Einen Ort mit Bäumen, Grün oder Wasser in der Nähe aufsuchen.", "Langsam gehen und bewusst hinschauen, hören, riechen.", "Wenn möglich etwas Natürliches kurz berühren — Rinde, Gras, Wasser."],
+    variation:"Kein Grün in der Nähe? Auch ein paar Zimmerpflanzen oder ein bewusster Blick auf den Himmel wirken schon in klein.",
+    deepen:{ action:"Diesmal 20 statt 10 Minuten, ohne Zeitdruck.",
+      steps:["Wie gewohnt einen grünen Ort aufsuchen.", "Diesmal 20 statt 10 Minuten dort bleiben.", "Bewusst langsamer werden, je länger du dort bist."] } },
+  { id:"36", tier:2, title:"Ein echtes Kompliment", action:"Einer Person heute etwas Konkretes und Ehrliches sagen, das du an ihr schätzt.", proposal:false, bestTime:"any",
+    steps:["Kurz überlegen, was dir an jemandem wirklich aufgefallen ist.", "Es konkret aussprechen, nicht nur allgemein 'gut gemacht'.", "Die Reaktion der Person einfach wahrnehmen, ohne mehr zu erwarten."],
+    variation:"Persönlich zu unangenehm? Auch schriftlich, z. B. per Nachricht, wirkt ein konkretes Kompliment.",
+    deepen:{ action:"Diesmal nicht nur eine Handlung loben, sondern eine Charaktereigenschaft, die du an der Person schätzt.",
+      steps:["Überlegen, welche Eigenschaft (nicht nur Handlung) du an der Person wirklich schätzt.", "Es ihr in eigenen Worten erklären, warum das für dich zählt.", "Den Moment wirken lassen, ohne ihn abzukürzen."] } },
+  { id:"37", tier:5, title:"Der Werte-Check", action:"Aufschreiben, was dir gerade wirklich wichtig ist, und kurz prüfen, ob dein Alltag dazu passt.", proposal:false, bestTime:"any",
+    steps:["3–5 Dinge aufschreiben, die dir aktuell wirklich wichtig sind.", "Bei jedem kurz notieren, warum es zählt.", "Ehrlich schauen, wo dein Alltag gerade davon abweicht — ohne es sofort zu bewerten."],
+    variation:"Zu viel auf einmal? Reicht auch, sich nur auf einen einzigen Wert zu konzentrieren.",
+    deepen:{ action:"Diesmal zusätzlich EINE konkrete Handlung festlegen, die diese Woche einem der Werte mehr Raum gibt.",
+      steps:["Die Werte-Liste wie gewohnt erstellen.", "Den Wert wählen, der aktuell am meisten zu kurz kommt.", "Eine konkrete, kleine Handlung dafür für diese Woche festlegen."] } },
+  { id:"38", tier:5, title:"Die große Frage", action:"Dir bewusst Zeit für eine große, unbeantwortete Frage nehmen — ohne sie lösen zu müssen.", proposal:false, bestTime:"any",
+    steps:["Eine Frage wählen, die dich wirklich beschäftigt, ohne einfache Antwort.", "Ein paar Minuten einfach damit sitzen, statt sie schnell zu beantworten.", "Falls du magst: aufschreiben, was dabei auftaucht — ohne Anspruch auf eine fertige Antwort."],
+    variation:"Fällt dir keine eigene Frage ein? Auch 'Was würde sich ändern, wenn ich heute wirklich ehrlich zu mir wäre?' funktioniert als Einstieg.",
+    deepen:{ action:"Diesmal die Frage schriftlich weiterverfolgen statt nur damit zu sitzen.",
+      steps:["Wie gewohnt eine große Frage wählen.", "Ein paar Minuten still damit sitzen.", "Danach schriftlich festhalten, was aufgetaucht ist — auch wenn es unfertig bleibt."] } },
+  // ---- #39–44: Ebene 3 (Kognition) und Ebene 4 (Kompetenz) ausgebaut (v0.14) ------------------
+  // Julians Wahl aus vier vorgeschlagenen Richtungen: Ebene 3 und 4 waren mit je 5 Items die
+  // kleinsten Pools (gegenüber 6–8 bei den anderen Ebenen). Ebene 3 bleibt strikt beim bisherigen
+  // Muster ALLER 5 bestehenden Items: Reibung/Reize REDUZIEREN, nicht zusätzliche kognitive Last
+  // erzeugen (deshalb z. B. keine "kritisches Denken üben"-Übung, das wäre das Gegenteil). Ebene 4
+  // bleibt beim bisherigen Muster: bewusste Handlung/Wiederholung/Grenzen setzen (nicht Entspannung).
+  { id:"39", tier:3, title:"Die Benachrichtigungs-Pause", action:"Für die nächste Stunde alle Benachrichtigungen auf deinem Handy stummschalten.", proposal:false, bestTime:"any",
+    steps:["Handy in den Nicht-stören-Modus oder Flugmodus versetzen.", "Bewusst eine Stunde als Zeitraum festlegen.", "Nach Ablauf ganz normal wieder erreichbar sein."],
+    variation:"Ganz stumm ist zu viel? Auch nur die lautesten Apps (Social Media, News) für die Stunde stummschalten reicht schon.",
+    deepen:{ action:"Diesmal einen halben Tag statt nur eine Stunde.",
+      steps:["Handy wie gewohnt in den Nicht-stören-Modus versetzen.", "Diesmal einen halben Tag statt nur eine Stunde festlegen.", "Wichtige Kontakte vorher kurz informieren, falls nötig."] } },
+  { id:"40", tier:3, title:"Das Info-Fasten", action:"Für die nächste Stunde bewusst keine Nachrichten, News oder Social Media checken.", proposal:false, bestTime:"any",
+    steps:["Für dich festlegen: die nächste Stunde ohne News- oder Social-Media-Apps.", "Bei Drang, kurz zu checken, stattdessen einmal tief durchatmen.", "Nach der Stunde ganz normal weiterschauen, wenn du magst."],
+    variation:"Eine ganze Stunde ist zu viel? Auch 20 bewusste Minuten sind schon ein Info-Fasten.",
+    deepen:{ action:"Diesmal einen halben Tag statt einer Stunde ohne News oder Social Media.",
+      steps:["Für dich einen halben Tag ohne News-/Social-Media-Apps festlegen.", "Apps notfalls für den Zeitraum vom Homescreen verbannen.", "Danach bewusst nur kurz reinschauen statt alles nachzuholen."] } },
+  { id:"41", tier:3, title:"Die einfache Wahl", action:"Bei der nächsten kleinen Entscheidung bewusst die einfachste Option wählen, statt lange abzuwägen.", proposal:false, bestTime:"any",
+    steps:["Auf die nächste kleine, nicht folgenreiche Entscheidung warten.", "Die erste naheliegende Option nehmen, ohne weiter zu vergleichen.", "Bewusst wahrnehmen, wie viel Energie das spart."],
+    variation:"Fällt dir schwer loszulassen? Setz dir eine Frist von 10 Sekunden für die Entscheidung.",
+    deepen:{ action:"Diesmal bei drei kleinen Entscheidungen hintereinander die einfachste Option wählen, nicht nur bei einer.",
+      steps:["Den restlichen Tag bewusst im Blick behalten.", "Bei drei kleinen Entscheidungen jeweils die einfachste Option wählen.", "Am Ende merken, wie viel Entscheidungsenergie das gespart hat."] } },
+  { id:"42", tier:4, title:"Der Timer-Sprint", action:"25 Minuten am Stück und ohne Unterbrechung an einer Sache arbeiten, die dich fordert.", proposal:false, bestTime:"any",
+    steps:["Timer auf 25 Minuten stellen.", "Alles andere für diese Zeit beiseitelegen — nur die eine Aufgabe.", "Nach dem Timer bewusst kurz pausieren, bevor es weitergeht."],
+    variation:"25 Minuten zu lang? Auch 10 Minuten ungestörter Fokus sind schon ein Sprint.",
+    deepen:{ action:"Diesmal 50 Minuten am Stück statt 25, mit einer kurzen Pause nach der Hälfte.",
+      steps:["Timer auf 50 Minuten stellen.", "Nach 25 Minuten eine kurze bewusste Pause von 2–3 Minuten.", "Danach die zweite Hälfte in gleicher Konzentration fortsetzen."] } },
+  { id:"43", tier:4, title:"Das Nein", action:"Sag heute bewusst 'Nein' zu einer Sache, die dir eigentlich nicht guttut.", proposal:false, bestTime:"any",
+    steps:["Eine Anfrage oder Gewohnheit identifizieren, bei der du eigentlich zögerst.", "Klar und freundlich absagen, ohne dich lang zu rechtfertigen.", "Beim Nein bleiben, auch wenn der Impuls kommt, es zurückzunehmen."],
+    variation:"Ein klares Nein fällt schwer? Auch 'Ich melde mich dazu noch mal' ist schon ein kleiner Schritt Richtung Grenze.",
+    deepen:{ action:"Diesmal eine wiederkehrende Sache ablehnen, nicht nur eine einmalige.",
+      steps:["Eine wiederkehrende Anfrage oder Gewohnheit identifizieren, die dir nicht guttut.", "Klar sagen, dass das ab jetzt nicht mehr geht — nicht nur dieses eine Mal.", "Beim Nein bleiben, auch wenn Nachfragen kommen."] } },
+  { id:"44", tier:4, title:"Die kleine Lehre", action:"Erklär heute jemandem kurz etwas, das du selbst gut kannst.", proposal:false, bestTime:"any",
+    steps:["Etwas auswählen, das du wirklich beherrschst — egal wie klein.", "Es einer Person in einfachen Worten erklären oder zeigen.", "Bemerken, wie das eigene Verständnis dabei noch klarer wird."],
+    variation:"Niemand gerade da zum Erklären? Auch das Aufschreiben, als würdest du es jemandem erklären, wirkt ähnlich.",
+    deepen:{ action:"Diesmal nicht nur kurz erklären, sondern die Person es unter deiner Anleitung selbst einmal ausprobieren lassen.",
+      steps:["Etwas auswählen, das du wirklich beherrschst.", "Es kurz erklären oder zeigen — wie gewohnt.", "Die Person es danach unter deiner Anleitung selbst einmal machen lassen."] } },
+  // ---- #45–49: fünf echte Lücken aus dem v8-Skillrepertoire geschlossen (v0.15, Skilltree) --------
+  // Bewusst nur diese fünf, nicht mehr: sie decken Konzepte ab, die im bisherigen Inventar von 44
+  // Items komplett fehlten (Bewegung in Ebene 0, Humor in Ebene 1, Umarmung in Ebene 2, Wochenplanung
+  // in Ebene 4, formale Meditation in Ebene 5) — nicht bloß Umformulierungen von etwas Vorhandenem.
+  { id:"45", tier:0, title:"10 Minuten Gehen", action:"10 Minuten in moderatem Tempo gehen, egal wohin.", proposal:false, bestTime:"any",
+    steps:["Raus, ohne langes Überlegen wohin genau.", "Ein gleichmäßiges, angenehmes Tempo halten.", "Bewusst durch die Nase ein- und durch den Mund ausatmen."],
+    variation:"Keine 10 Minuten am Stück möglich? Auch zwei Mal 5 Minuten über den Tag verteilt zählen.",
+    deepen:{ action:"Diesmal 20 Minuten in zügigerem Tempo statt 10 Minuten gemütlich.",
+      steps:["Wie gewohnt losgehen, diesmal etwas schneller als sonst.", "20 statt 10 Minuten durchhalten.", "Am Ende kurz merken, wie sich Kopf und Körper jetzt anfühlen."] } },
+  { id:"46", tier:1, title:"Lachen", action:"Dir bewusst etwas suchen, das dich wirklich zum Lachen bringt — ein Video, eine Erinnerung, ein Mensch.", proposal:false, bestTime:"any",
+    steps:["Etwas suchen, von dem du weißt, dass es dich zum Lachen bringt.", "Dir die paar Minuten dafür wirklich nehmen.", "Das Lachen zulassen, ohne es zu bewerten."],
+    variation:"Fällt dir nichts ein? Auch an eine wirklich lustige Erinnerung zurückdenken funktioniert.",
+    deepen:{ action:"Diesmal das Lachen mit jemandem teilen statt allein zu bleiben.",
+      steps:["Das Lustige einer Person zeigen oder erzählen.", "Gemeinsam lachen, nicht nur zusehen wie die Person lacht.", "Den Moment kurz wirken lassen, bevor es weitergeht."] } },
+  { id:"47", tier:2, title:"Eine Umarmung", action:"Eine Person heute bewusst um eine Umarmung bitten oder eine anbieten — mindestens 6 Sekunden halten.", proposal:false, bestTime:"any",
+    steps:["Kurz fragen oder anbieten, ob eine Umarmung okay ist.", "Wirklich ganz umarmen, nicht nur kurz antippen.", "Mindestens 6 Sekunden halten, bevor du loslässt."],
+    variation:"Niemand gerade da? Auch eine Hand auf den eigenen Arm oder Brustkorb legen wirkt beruhigend.",
+    deepen:{ action:"Diesmal bewusst länger halten — 10 Sekunden statt 6.",
+      steps:["Wie gewohnt um eine Umarmung bitten oder anbieten.", "Diesmal bewusst bis 10 zählen, bevor du loslässt.", "Die Wärme und den Kontakt dabei bewusst wahrnehmen."] } },
+  { id:"48", tier:4, title:"Der Wochenplan", action:"10 Minuten die kommende Woche grob planen — was zählt wirklich, was kann warten.", proposal:false, bestTime:"any",
+    steps:["Kurz auf die kommende Woche schauen.", "Die 2–3 wirklich wichtigen Dinge markieren.", "Alles andere bewusst als 'kann warten' einordnen."],
+    variation:"Zu viel für eine ganze Woche? Auch nur der nächste Tag reicht als Einstieg.",
+    deepen:{ action:"Diesmal 20 Minuten, inklusive eines kurzen Rückblicks auf die letzte Woche.",
+      steps:["Kurz reflektieren, was in der letzten Woche gut lief und was nicht.", "Die kommende Woche wie gewohnt grob planen.", "Eine konkrete Lehre aus der letzten Woche in den neuen Plan einbauen."] } },
+  { id:"49", tier:5, title:"Stille Meditation", action:"10 Minuten in Stille sitzen und die Aufmerksamkeit immer wieder sanft zum Atem zurückbringen.", proposal:false, bestTime:"any",
+    steps:["Bequem und aufrecht hinsetzen, Timer auf 10 Minuten.", "Aufmerksamkeit auf den Atem richten.", "Wenn der Geist abschweift, sanft und ohne Urteil zurückkommen."],
+    variation:"10 Minuten zu lang für den Anfang? Auch 5 Minuten sind schon eine vollständige Übung.",
+    deepen:{ action:"Diesmal 20 statt 10 Minuten in Stille sitzen.",
+      steps:["Wie gewohnt bequem hinsetzen, diesmal Timer auf 20 Minuten.", "Aufmerksamkeit auf den Atem richten.", "Abschweifen so oft wie nötig sanft wieder loslassen — ohne Frustration."] } }
+];
+
+// ---- 3. Persistenz (seit v0.7) ------------------------------------
+// Best-Practice-Prinzip #4 sah vor, Datenpersistenz erst einzuführen, wenn sich der Loop im Alltag
+// bewährt hat — genau das ist jetzt der Fall (Julian bringt 8 Monate v8-Erfahrung aktiv ein) UND es
+// ist die Voraussetzung dafür, dass sich die App laut Julians Anforderung wirklich individuell
+// "einschleift" (unterschiedliche Menschen -> unterschiedliches Feedback -> unterschiedliche
+// Gewichtung über Wochen, nicht nur pro Sitzung). Bewusst NUR `localStorage` im selben Browser —
+// kein Konto, kein Server, keine Synchronisation zwischen Geräten. Alles bleibt lokal bei der Person.
+const STORAGE_KEYS = { weights: "humaneed_weights_v1", history: "humaneed_history_v1", reflections: "humaneed_reflections_v1" };
+const HISTORY_LIMIT = 300; // Obergrenze, damit localStorage nicht unbegrenzt wächst
+
+function todayIso(){ return new Date().toISOString().slice(0, 10); }
+
+function loadWeights(){
+  const defaults = {};
+  INTERVENTIONS.forEach(iv => defaults[iv.id] = 1.0);
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.weights);
+    if (!raw) return defaults;
+    const stored = JSON.parse(raw);
+    // Nur bekannte IDs übernehmen, damit ein verändertes Inventar in künftigen Versionen nicht bricht.
+    Object.keys(defaults).forEach(id => {
+      if (typeof stored[id] === "number") defaults[id] = stored[id];
+    });
+    return defaults;
+  } catch (e) {
+    console.warn("Konnte gespeicherte Gewichtungen nicht lesen, starte mit Standardwerten.", e);
+    return defaults;
+  }
+}
+
+function saveWeights(){
+  try { localStorage.setItem(STORAGE_KEYS.weights, JSON.stringify(weights)); }
+  catch (e) { console.warn("Konnte Gewichtungen nicht speichern.", e); }
+}
+
+function loadHistory(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.history);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    console.warn("Konnte gespeicherten Verlauf nicht lesen, starte leer.", e);
+    return [];
+  }
+}
+
+function saveHistory(){
+  try {
+    const trimmed = sessionLog.slice(0, HISTORY_LIMIT);
+    localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(trimmed));
+  } catch (e) { console.warn("Konnte Verlauf nicht speichern.", e); }
+}
+
+// Tagesabschluss (seit v0.9): die Selbstwert-Reflexion ("Form gehalten oder verstellt?") war
+// ursprünglich als EINMALIGE Tages-Reflexion gedacht (siehe Blueprint-Ergänzung, Kapitel IX), lief
+// in v0.1–v0.8 aber fälschlich bei JEDEM Zyklus mit. Julians Klarstellung: Qualia-Bewertung bleibt
+// pro Zyklus, die Form-Reflexion gehört an den Tagesabschluss. Bewusst freiwillig und ohne jede
+// Erinnerung/Benachrichtigung ("soll sich nicht wie ein Tamagotchi anfühlen") — die Karte liegt
+// einfach auf dem Summary-Screen, niemand wird aktiv dazu aufgefordert.
+function loadReflections(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.reflections);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    console.warn("Konnte gespeicherte Tagesreflexionen nicht lesen, starte leer.", e);
+    return {};
+  }
+}
+
+function saveReflections(){
+  try { localStorage.setItem(STORAGE_KEYS.reflections, JSON.stringify(dailyReflections)); }
+  catch (e) { console.warn("Konnte Tagesreflexion nicht speichern.", e); }
+}
+
+function setTodaysReflection(choice){
+  dailyReflections[todayIso()] = choice;
+  saveReflections();
+  renderDayClose();
+}
+
+function renderDayClose(){
+  const content = document.getElementById("dayclose-content");
+  const today = todayIso();
+  const existing = dailyReflections[today];
+  if (!existing){
+    content.innerHTML = `
+      <div class="dayclose-question">Hast du heute die Form gehalten, oder hast du sie verstellt?</div>
+      <div class="row">
+        <button class="opt-btn" id="btn-dayclose-held">Gehalten</button>
+        <button class="opt-btn" id="btn-dayclose-bent">Verstellt</button>
+      </div>
+    `;
+    document.getElementById("btn-dayclose-held").addEventListener("click", () => setTodaysReflection("held"));
+    document.getElementById("btn-dayclose-bent").addEventListener("click", () => setTodaysReflection("bent"));
+  } else {
+    const label = existing === "held" ? "Form gehalten." : "Form verstellt — kein Problem, morgen ist ein neuer Tag.";
+    content.innerHTML = `<div class="dayclose-done">Heute schon beantwortet: ${label}<button type="button" class="change-link" id="btn-dayclose-change">ändern</button></div>`;
+    document.getElementById("btn-dayclose-change").addEventListener("click", renderDayCloseUnanswered);
+  }
+}
+
+function renderDayCloseUnanswered(){
+  // Erlaubt Korrektur eines Vertippers, ohne extra Bestätigungsdialog (bewusst niedrigschwellig)
+  delete dailyReflections[todayIso()];
+  renderDayClose();
+}
+
+function resetAllData(){
+  try {
+    localStorage.removeItem(STORAGE_KEYS.weights);
+    localStorage.removeItem(STORAGE_KEYS.history);
+    localStorage.removeItem(STORAGE_KEYS.reflections);
+  } catch (e) { /* ignore */ }
+  INTERVENTIONS.forEach(iv => weights[iv.id] = 1.0);
+  sessionLog = [];
+  dailyReflections = {};
+  renderHistory();
+  renderProgress();
+  renderDayClose();
+}
+
+// ---- Lernsystem: Gewichtung pro Intervention (jetzt persistent über localStorage) ----
+const weights = loadWeights();
+let dailyReflections = loadReflections(); // { "YYYY-MM-DD": "held" | "bent" }
+
+// ---- App-Status --------------------------------------------
+let answers = {};          // { tierId: score }
+let currentTierId = null;  // aktuell adressierte Ebene
+let currentIntervention = null;
+let currentDepth = null;   // aufgelöster Inhalt (Basis- oder vertiefte Stufe), siehe resolveDepth() weiter unten
+let gatekeeperReason = null; // "tier0" | "tier0_chronic" | "tier1" | "tier1_chronic" | "tier2" | "tier2_chronic" | null
+
+// Verlauf über alle Sitzungen hinweg (persistent via localStorage, gedeckelt auf HISTORY_LIMIT Einträge).
+let sessionLog = loadHistory();
+
+// ---- 4. Check-in UI rendern ----------------------------------
+const checkinList = document.getElementById("checkin-list");
+TIERS.forEach(tier => {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `
+    <div class="tier-label">Ebene ${tier.id} · ${tier.name}</div>
+    <div class="question" id="checkin-question-${tier.id}">${tier.question}</div>
+    <div class="options" data-tier="${tier.id}" role="radiogroup" aria-labelledby="checkin-question-${tier.id}"></div>
+  `;
+  const optsWrap = card.querySelector(".options");
+  tier.options.forEach(opt => {
+    const btn = document.createElement("button");
+    btn.className = "opt-btn";
+    btn.textContent = opt.label;
+    // Barrierefreiheit (seit v0.20): die Auswahl-Buttons wirken wie Radiobuttons (genau eine Wahl
+    // pro Ebene) — das war bisher rein visuell (".selected"-Klasse). role="radio"/aria-checked
+    // macht das für Screenreader-Nutzer explizit, ohne am Look&Feel etwas zu ändern.
+    btn.setAttribute("role", "radio");
+    btn.setAttribute("aria-checked", "false");
+    btn.addEventListener("click", () => {
+      answers[tier.id] = opt.value;
+      optsWrap.querySelectorAll(".opt-btn").forEach(b => {
+        b.classList.remove("selected");
+        b.setAttribute("aria-checked", "false");
+      });
+      btn.classList.add("selected");
+      btn.setAttribute("aria-checked", "true");
+      checkAllAnswered();
+    });
+    optsWrap.appendChild(btn);
+  });
+  checkinList.appendChild(card);
+});
+
+function checkAllAnswered(){
+  const done = TIERS.every(t => answers[t.id] !== undefined);
+  document.getElementById("btn-submit-checkin").disabled = !done;
+}
+
+// ---- 5. Core Loop: Bottleneck bestimmen + Gatekeeper ---------
+function findBottleneckTier(){
+  // niedrigster Wert gewinnt. Bei Gleichstand gewinnt bewusst die HÖHERE Ebene (nicht automatisch Tier 0) —
+  // damit die explizite Gatekeeper-Regel unten tatsächlich etwas zu tun hat, statt durch Tie-Breaking
+  // unsichtbar zu werden. Ohne Regel könnte man z.B. bei Tier 0 = Tier 3 = "kritisch" auf Kognition
+  // geschickt werden, obwohl das Fundament (Biologie) genauso instabil ist.
+  let minTier = 0, minVal = Infinity;
+  TIERS.forEach(t => {
+    if (answers[t.id] <= minVal){
+      minVal = answers[t.id];
+      minTier = t.id;
+    }
+  });
+  return minTier;
+}
+
+// ---- 5a2. Top-down-Kopplung: chronischer Bedeutungs-Mangel macht alle drei Regeln empfindlicher
+// (Regel 1 seit v0.18, Regeln 2/3 seit v0.21) ----
+// Kapitel XI der Blueprint-Ergänzung: die drei Gatekeeper-Regeln wirken sonst ausschließlich bottom-up
+// (niedrigere Ebene deckelt/blockiert höhere). Predictive Processing (Friston, bereits in Kapitel VI
+// zitiert) und Psychoneuroimmunologie legen aber auch TOP-DOWN-Wirkung nahe: anhaltender
+// Bedeutungs-Mangel (Ebene 5) geht mit erhöhter Cortisol-Last, geringerer physiologischer Resilienz und
+// geringerer Stress-Pufferkapazität einher — der heutige Wert einer anderen Ebene allein zeigt diese
+// Fragilität nicht zwangsläufig. Braucht mindestens 10 historische Zyklen mit gespeicherten Antworten,
+// bevor sie überhaupt aktiv wird — ein chronisches Muster lässt sich nicht aus 1-2 Tagen ableiten, und
+// ohne diese Schwelle würde sie bei sehr wenig Daten unzuverlässig bzw. zufällig wirken (gleiches
+// Vorsichtsprinzip wie bei computeHelpfulRate/computeTopBottleneckTier).
+function computeChronicMeaningDeficit(){
+  const MIN_ENTRIES = 10;
+  const withAnswers = sessionLog.filter(e => e.answers && typeof e.answers[5] === "number");
+  if (withAnswers.length < MIN_ENTRIES) return null; // zu wenig Daten für ein "chronisch"-Urteil
+  const window = withAnswers.slice(0, 20); // jüngste zuerst, gleiches Fensterprinzip wie Auswertungstiefe
+  const avg = window.reduce((sum, e) => sum + e.answers[5], 0) / window.length;
+  return { avg, windowSize: window.length, isDeficit: avg < 30 };
+}
+
+// Alle drei Regeln aus Kapitel IV der Projekt-Doku, jetzt aktiv (vorher nur Regel 1 — Best-Practice-
+// Prinzip #3 sah vor, erst eine Regel zu bewähren, bevor weitere dazukommen).
+// Kein neues Check-in-Feld nötig: der jeweils EXTREMSTE Wert (10) einer Ebene wird als der in Kapitel IV
+// beschriebene kritische Zustand gelesen — bei Tier 1 als "Kampf/Flucht/Erstarrung", bei Tier 2 als
+// "isoliert" (deckt sich mit dem jeweils niedrigsten Antwort-Label). Die Regeln werden sequentiell
+// angewendet (bottom-up), sodass pro Zyklus genau eine greift — eine niedrigere Ebene sticht immer
+// eine höhere.
+//
+// Seit v0.21 nutzen alle drei Regeln bei nachgewiesenem chronischen Bedeutungs-Mangel eine erweiterte
+// Auslöse-Schwelle statt nur des Extremwerts 10 — Regel 2/3 waren bisher bewusst NICHT top-down
+// gekoppelt (Kapitel XI, "Regeln 2/3 könnten später analog erweitert werden"). Analog zu Regel 1 gilt:
+// die Regel wird empfindlicher (schützt öfter), nicht schwächer. Julian hat diese Erweiterung nach dem
+// Alltagstest von Regel 1 explizit angefordert, obwohl die Notizen ursprünglich empfahlen, erst
+// abzuwarten — das ist seine bewusste Entscheidung, nicht unser Abweichen vom Vorsichtsprinzip.
+function applyGatekeepers(bottleneckTier){
+  let tier = bottleneckTier;
+  gatekeeperReason = null; // "tier0" | "tier0_chronic" | "tier1" | "tier1_chronic" | "tier2" | "tier2_chronic" | null
+
+  const chronic = computeChronicMeaningDeficit();
+  const isChronic = !!(chronic && chronic.isDeficit);
+
+  // Regel 1 — Biologische Deckelung: Tier 0 < Schwelle deckelt NUR die Kapazität für Tier 3 (Kognition),
+  // so wörtlich im Blueprint (Kapitel IV): "...wird die maximale Kapazität für Tier 3 auf -30% gesetzt".
+  // Bewusst NICHT breiter gefasst — Sport (Tier 0 selbst) oder Freunde treffen (Tier 2) sind bei
+  // niedriger Biologie weiterhin sinnvoll bzw. sogar hilfreich (Bewegung, Oxytocin/Ko-Regulation);
+  // nur Deep-Work-artiger Fokus (Tier 3) braucht die Energie, die gerade fehlt.
+  // Schwelle normal 30, bei nachgewiesenem chronischen Bedeutungs-Mangel auf 40 angehoben (seit v0.18).
+  const bio0Threshold = isChronic ? 40 : 30;
+  if (answers[0] < bio0Threshold && tier === 3){
+    // Nur als "chronisch" kennzeichnen (andere Erklärung im UI), wenn die Ausweitung selbst den
+    // Unterschied gemacht hat — bei answers[0] < 30 hätte Regel 1 ohnehin gegriffen, keine zusätzliche
+    // Begründung nötig.
+    gatekeeperReason = (isChronic && answers[0] >= 30) ? "tier0_chronic" : "tier0";
+    tier = 0;
+  }
+
+  // Regel 2 — Ventral-Vagus-Prüfung: Tier 1 in Kampf/Flucht/Erstarrung blockiert Tier 4 und Tier 5.
+  // Normal nur beim Extremwert (10, "sehr angespannt/gestresst"); bei chronischem Bedeutungs-Mangel
+  // bereits ab "eher unruhig" (30) — chronisch erhöhte Cortisol-Last senkt laut Psychoneuroimmunologie
+  // die Schwelle, ab der ein moderater Stresswert tatsächlich schon kritisch ist (seit v0.21).
+  const tier1Threshold = isChronic ? 30 : 10;
+  if (answers[1] <= tier1Threshold && (tier === 4 || tier === 5)){
+    gatekeeperReason = (isChronic && answers[1] > 10) ? "tier1_chronic" : "tier1";
+    tier = 1;
+  }
+
+  // Regel 3 — Soziale Voraussetzung: Tier 2 "isoliert" erschwert die Integration von Tier 5.
+  // Gleiche Erweiterung analog zu Regel 2 (seit v0.21): normal nur beim Extremwert 10, bei chronischem
+  // Bedeutungs-Mangel bereits ab "eher distanziert" (30) — geringere soziale Pufferkapazität macht auch
+  // moderate Distanz zum relevanten Hindernis für Sinn-Integration.
+  const tier2Threshold = isChronic ? 30 : 10;
+  if (answers[2] <= tier2Threshold && tier === 5){
+    gatekeeperReason = (isChronic && answers[2] > 10) ? "tier2_chronic" : "tier2";
+    tier = 2;
+  }
+
+  return tier;
+}
+
+// ---- 5b. Realer Zeitkontext (Chronobiologie, siehe Blueprint Kapitel V) --------
+// Rein client-seitig über die Geräte-Uhrzeit — kein Server, keine Speicherung, kein neues Konzept,
+// nur ein bereits im Blueprint vorgesehenes Feature, das bisher fehlte.
+function getTimeContext(){
+  const now = new Date();
+  const h = now.getHours();
+  const day = now.getDay(); // 0 = Sonntag, 6 = Samstag
+  let bucket, greeting;
+  if (h >= 5 && h < 11){ bucket = "morning"; greeting = "Guten Morgen"; }
+  else if (h >= 11 && h < 14){ bucket = "midday"; greeting = "Schönen Mittag"; }
+  else if (h >= 14 && h < 18){ bucket = "afternoon"; greeting = "Schönen Nachmittag"; }
+  else if (h >= 18 && h < 22){ bucket = "evening"; greeting = "Guten Abend"; }
+  else { bucket = "night"; greeting = "Noch wach?"; }
+  const weekdayNames = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+  return {
+    bucket,
+    greeting,
+    isWeekend: (day === 0 || day === 6),
+    weekdayLabel: weekdayNames[day]
+  };
+}
+
+function renderGreeting(){
+  const ctx = getTimeContext();
+  document.getElementById("context-greeting").textContent = `${ctx.greeting} · ${ctx.weekdayLabel}`;
+}
+
+function pickIntervention(tierId){
+  const pool = INTERVENTIONS.filter(iv => iv.tier === tierId);
+  const ctx = getTimeContext();
+  // War 2.5, dadurch z.B. an Wochenenden bei nur 4 Ebene-5-Interventionen (nur eine davon
+  // "weekend"-getaggt) schon bei Startgewichten ~46% statt der fairen 25% — nach ein bisschen
+  // gelerntem Vorzug sogar >70% ("es kommt überwiegend derselbe Vorschlag", Julians Beobachtung
+  // am 2026-08-16, einem Sonntag). Auf 1.5 reduziert, damit es wirklich nur eine LEICHTE Präferenz
+  // bleibt statt faktischer Dominanz, gerade bei kleinen Ebenen-Pools.
+  const TIME_BONUS = 1.5;
+
+  function effectiveWeight(iv){
+    let w = weights[iv.id];
+    if (iv.bestTime === "any") return w;
+    if (iv.bestTime === "weekend") return ctx.isWeekend ? w * TIME_BONUS : w;
+    // morning/evening/midday: leicht bevorzugen, wenn Tageszeit ungefähr passt (Vormittag zählt noch als
+    // "morning", Abend/Nacht zählt noch als "evening", Mittag/Nachmittag zählt als "midday" — großzügig,
+    // damit es nicht zu starr wird). "midday" kam mit #33 "Der Kurzschlaf" in v0.13 dazu.
+    const matchesMorning = iv.bestTime === "morning" && (ctx.bucket === "morning");
+    const matchesEvening = iv.bestTime === "evening" && (ctx.bucket === "evening" || ctx.bucket === "night");
+    const matchesMidday = iv.bestTime === "midday" && (ctx.bucket === "midday" || ctx.bucket === "afternoon");
+    return (matchesMorning || matchesEvening || matchesMidday) ? w * TIME_BONUS : w;
+  }
+
+  const totalWeight = pool.reduce((sum, iv) => sum + effectiveWeight(iv), 0);
+  let r = Math.random() * totalWeight;
+  for (const iv of pool){
+    r -= effectiveWeight(iv);
+    if (r <= 0) return iv;
+  }
+  return pool[pool.length - 1];
+}
+
+// ---- 5c. Interner Skilltree: Vorschläge, die mit der Person mitwachsen (seit v0.15) ---------------
+// Julians Auftrag: "einen umfassenden Skilltree als Grundlage für die Handlungsempfehlungen
+// implementieren". Bewusst KEIN sichtbarer Baum, keine Freischaltungs-Screens, kein XP — das hätte
+// die Gamification-Grenze verletzt, die wir uns beim v8-Audit (v0.3/v0.13) bewusst gesetzt hatten
+// (Julians eigene Entscheidung in der Klärungsfrage zu diesem Feature: "Interner Skilltree").
+// Stattdessen: manche Interventionen haben jetzt zusätzlich zur Basis-Stufe eine `deepen`-Stufe
+// (gleicher Titel, etwas mehr Dauer/Tiefe — aus v8s Anfänger→Expert-Leitern destilliert, aber ohne
+// die dortigen 4 Stufen und ohne Punkte). Sichtbar bleibt weiterhin PRO ZYKLUS GENAU EIN Vorschlag.
+//
+// Der Auslöser für die tiefere Stufe ist bewusst KEIN neuer Zähler, sondern das ohnehin longitudinal
+// gelernte `weights[id]` — das steigt nur durch wiederholtes "hat geholfen"-Feedback für GENAU diese
+// Intervention (siehe finishFeedback). Ein hohes Gewicht heißt also bereits "das hier funktioniert
+// gut für diese Person" — exakt das Signal, das laut Flow-Theorie (Blueprint, Tier 4: "bewusste
+// Wiederholung") auch für eine passende Herausforderungs-Anpassung gebraucht wird. Kein zusätzlicher
+// Speicher, keine neue Zahl, die die Person je zu Gesicht bekommt.
+const DEEPEN_THRESHOLD = 2.0; // ab hier gilt eine Intervention für diese Person als eingespielt
+
+function resolveDepth(iv){
+  const eligible = iv.deepen && weights[iv.id] >= DEEPEN_THRESHOLD;
+  if (eligible){
+    return { title: iv.title, action: iv.deepen.action, steps: iv.deepen.steps, variation: iv.variation, deepened: true };
+  }
+  return { title: iv.title, action: iv.action, steps: iv.steps, variation: iv.variation, deepened: false };
+}
+
+// ---- 6. Screens wechseln --------------------------------------
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  const next = document.getElementById(id);
+  next.classList.add("active");
+  // Barrierefreiheit (seit v0.20): Fokus explizit auf den neuen Screen setzen. Der Wechsel ist rein
+  // CSS-basiert (nur .active togglet Sichtbarkeit, keine echte Seitennavigation) — ohne diesen Schritt
+  // würden Tastatur-Nutzer auf einem jetzt unsichtbaren Button "gefangen" bleiben und Screenreader
+  // würden den neuen Inhalt nicht automatisch vorlesen. Jeder .screen hat dafür tabindex="-1" + aria-label.
+  next.focus();
+}
+
+document.getElementById("btn-submit-checkin").addEventListener("click", () => {
+  const raw = findBottleneckTier();
+  currentTierId = applyGatekeepers(raw);
+  currentIntervention = pickIntervention(currentTierId);
+  currentDepth = resolveDepth(currentIntervention);
+  renderResult();
+  showScreen("screen-result");
+});
+
+const GATEKEEPER_MESSAGES = {
+  tier0: "Dein Fundament (Ebene 0 · Biologie) ist gerade instabil (unter 30&nbsp;%). Fokus-Arbeit (Ebene 3 · Kognition) braucht Energie, die gerade fehlt — deshalb zuerst ein Schritt bei Biologie.",
+  tier0_chronic: "Dein Fundament (Ebene 0 · Biologie) liegt heute nicht extrem niedrig — aber Bedeutung (Ebene 5) war über deine letzten Zyklen anhaltend gering. Das macht dein Fundament empfindlicher, als der heutige Wert allein zeigt — deshalb heute vorsichtshalber zuerst ein Schritt bei Biologie.",
+  tier1: "Dein Nervensystem wirkt gerade überreizt (Kampf/Flucht oder Erstarrung). Kompetenz oder Bedeutung können warten — zuerst geht es um Beruhigung (Ebene 1 · Emotion).",
+  tier1_chronic: "Dein Nervensystem wirkt heute nicht extrem überreizt — aber Bedeutung (Ebene 5) war über deine letzten Zyklen anhaltend gering. Das macht dich empfindlicher für Stress, als der heutige Wert allein zeigt — deshalb heute vorsichtshalber zuerst ein Schritt bei Emotion.",
+  tier2: "Du fühlst dich gerade isoliert. Ohne Verbindung gelingt Integration von Sinn (Ebene 5) schwerer — deshalb zuerst ein Schritt bei Sozial.",
+  tier2_chronic: "Du fühlst dich heute nicht völlig isoliert — aber Bedeutung (Ebene 5) war über deine letzten Zyklen anhaltend gering. Ohne ausreichend soziale Verbindung gelingt Integration von Sinn schwerer, auch bei nur mäßiger Distanz — deshalb heute vorsichtshalber zuerst ein Schritt bei Sozial."
+};
+
+function renderResult(){
+  const tier = TIERS.find(t => t.id === currentTierId);
+  const gk = document.getElementById("gatekeeper-note");
+  gk.innerHTML = gatekeeperReason
+    ? `<div class="gatekeeper">${GATEKEEPER_MESSAGES[gatekeeperReason]}</div>`
+    : "";
+  document.getElementById("result-tier-label").textContent = `Schwächstes Glied: Ebene ${tier.id} · ${tier.name}`;
+  // currentDepth statt currentIntervention direkt: liefert entweder die Basis- oder die vertiefte
+  // Stufe (siehe resolveDepth, seit v0.15) — der Titel bleibt in beiden Fällen gleich, nur Handlung/
+  // Schritte unterscheiden sich. Die "Vertiefung"-Markierung ist bewusst nüchtern gehalten (gleicher
+  // .tag-Stil wie "Vorrang"), kein Erfolgs-Badge, keine Farbe, keine Feier.
+  document.getElementById("result-title").innerHTML =
+    currentDepth.title + (currentDepth.deepened ? `<span class="tag">Vertiefung</span>` : "");
+  document.getElementById("result-action").textContent = currentDepth.action;
+  document.getElementById("result-why").textContent = TIER_WHY[tier.id];
+
+  const stepsList = document.getElementById("result-steps");
+  stepsList.innerHTML = (currentDepth.steps || []).map(s => `<li>${s}</li>`).join("");
+  document.getElementById("result-variation").textContent = currentDepth.variation || "";
+}
+
+document.getElementById("btn-done").addEventListener("click", () => {
+  showScreen("screen-feedback");
+});
+document.getElementById("btn-skip").addEventListener("click", () => {
+  // Wu-Wei-Prinzip: kein Druck, nur leichte Anpassung der Gewichtung, kein Feedback-Screen nötig
+  weights[currentIntervention.id] = Math.max(0.2, weights[currentIntervention.id] - 0.15);
+  saveWeights();
+  logCycle({ qualiaLabel:"übersprungen", qualiaClass:"same" });
+  finishCycle("Übersprungen — Gewichtung leicht reduziert, kein Druck.");
+});
+
+// ---- 7. Qualia-Feedback -> Gewichtung anpassen ------
+let qualiaChoice = null;
+
+document.querySelectorAll("[data-qualia]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    qualiaChoice = parseInt(btn.dataset.qualia, 10);
+    document.querySelectorAll("[data-qualia]").forEach(b => {
+      b.classList.remove("selected");
+      b.setAttribute("aria-checked", "false");
+    });
+    btn.classList.add("selected");
+    btn.setAttribute("aria-checked", "true");
+    finishFeedback();
+  });
+});
+
+function finishFeedback(){
+  const id = currentIntervention.id;
+  if (qualiaChoice === 1) weights[id] = Math.min(3, weights[id] + 0.3);
+  if (qualiaChoice === -1) weights[id] = Math.max(0.2, weights[id] - 0.3);
+  // qualiaChoice === 0 -> keine Änderung
+  saveWeights();
+
+  const qualiaText = qualiaChoice === 1 ? "Es hat spürbar geholfen — Gewichtung erhöht."
+                    : qualiaChoice === -1 ? "Es hat nicht geholfen — Gewichtung gesenkt."
+                    : "Kein spürbarer Unterschied — Gewichtung bleibt gleich.";
+
+  logCycle({
+    qualiaLabel: qualiaChoice === 1 ? "besser" : qualiaChoice === -1 ? "schlechter" : "gleich",
+    qualiaClass: qualiaChoice === 1 ? "better" : qualiaChoice === -1 ? "worse" : "same"
+  });
+  finishCycle(qualiaText);
+}
+
+function logCycle({ qualiaLabel, qualiaClass }){
+  const tier = TIERS.find(t => t.id === currentTierId);
+  const now = new Date();
+  sessionLog.unshift({
+    num: sessionLog.length + 1,
+    isoDate: now.toISOString().slice(0, 10), // für Streak-/Tages-Berechnung, unabhängig vom Anzeigeformat
+    dateLabel: now.toLocaleDateString("de-DE", { day:"2-digit", month:"2-digit" }),
+    timeLabel: now.toLocaleTimeString("de-DE", { hour:"2-digit", minute:"2-digit" }),
+    tierName: tier.name,
+    tierId: tier.id,
+    title: currentIntervention.title,
+    deepened: currentDepth ? currentDepth.deepened : false,
+    gatekeeper: gatekeeperReason,
+    answers: { ...answers }, // Snapshot des Check-ins dieses Zyklus (seit v0.18, für computeChronicMeaningDeficit)
+    qualiaLabel,
+    qualiaClass
+  });
+  saveHistory();
+}
+
+// ---- 7b. Fortschritt: Streak, Tages-Zähler, Hilfreich-Quote (nur aus bereits gespeichertem Verlauf) ----
+// Bewusst schlicht gehalten — kein eigener "Insights"-Screen (das war einer der Gründe, warum v8
+// überladen wurde), sondern drei Zeilen auf dem ohnehin vorhandenen Summary-Screen.
+function computeStreak(){
+  const days = new Set(sessionLog.map(e => e.isoDate));
+  let streak = 0;
+  const cursor = new Date();
+  while (true){
+    const iso = cursor.toISOString().slice(0, 10);
+    if (days.has(iso)){
+      streak++;
+      cursor.setDate(cursor.getDate() - 1);
+    } else break;
+  }
+  return streak;
+}
+
+function computeTodaysCount(){
+  const today = new Date().toISOString().slice(0, 10);
+  return sessionLog.filter(e => e.isoDate === today).length;
+}
+
+function computeHelpfulRate(){
+  const withQualia = sessionLog.filter(e => e.qualiaClass === "better" || e.qualiaClass === "worse");
+  if (withQualia.length < 3) return null; // zu wenig Daten für eine aussagekräftige Quote
+  const better = withQualia.filter(e => e.qualiaClass === "better").length;
+  return Math.round((better / withQualia.length) * 100);
+}
+
+// Mehr Auswertungstiefe (seit v0.17, auf Julians Wunsch): welche Ebene war zuletzt am häufigsten der
+// Engpass? Bewusst KEIN neuer Screen, KEIN Chart — nur eine vierte, ebenso unaufdringliche Zeile auf
+// der ohnehin vorhandenen Fortschritts-Karte (gleiches Prinzip wie computeHelpfulRate: erst ab einer
+// Mindestmenge an Daten anzeigen, sonst wäre es irreführend). Fenster bewusst nach ANZAHL Zyklen
+// (letzte 20), nicht nach Kalendertagen — robuster bei unregelmäßiger Nutzung, kein Datums-Edge-Case.
+// `entry.tierId` ist die tatsächlich adressierte Ebene (nach Gatekeeper-Regeln, falls eine griff) —
+// das ist die Ebene, an der die Person wirklich gearbeitet hat, nicht nur der rohe Rang-1-Engpass.
+function computeTopBottleneckTier(){
+  const MIN_ENTRIES = 5;
+  if (sessionLog.length < MIN_ENTRIES) return null;
+  const window = sessionLog.slice(0, 20); // sessionLog ist unshift-basiert: Index 0 = jüngster Zyklus
+  const counts = {};
+  window.forEach(e => { counts[e.tierId] = (counts[e.tierId] || 0) + 1; });
+  let topId = null, topCount = -1;
+  TIERS.forEach(t => {
+    const c = counts[t.id] || 0;
+    if (c > topCount){ topCount = c; topId = t.id; }
+  });
+  const tier = TIERS.find(t => t.id === topId);
+  return { tierId: tier.id, tierName: tier.name, count: topCount, windowSize: window.length };
+}
+
+function renderProgress(){
+  const list = document.getElementById("progress-list");
+  const streak = computeStreak();
+  const today = computeTodaysCount();
+  const rate = computeHelpfulRate();
+  const topBottleneck = computeTopBottleneckTier();
+
+  const streakText = streak <= 1
+    ? "Erster Tag deiner aktuellen Serie"
+    : `${streak} Tage in Folge`;
+  const todayText = today === 1 ? "Heute: dein erster Zyklus" : `Heute: dein ${today}. Zyklus`;
+
+  let html = `
+    <div class="progress-row"><span class="p-value">${streak}</span> ${streakText}</div>
+    <div class="progress-row"><span class="p-value">${today}</span> ${todayText.replace(/^Heute: /, "")}</div>
+  `;
+  if (rate !== null){
+    html += `<div class="progress-row"><span class="p-value">${rate}%</span> deiner bisherigen Zyklen haben spürbar geholfen</div>`;
+  }
+  if (topBottleneck !== null){
+    html += `<div class="progress-row">In deinen letzten ${topBottleneck.windowSize} Zyklen war Ebene ${topBottleneck.tierId} · ${topBottleneck.tierName} am häufigsten dein Engpass (${topBottleneck.count}×).</div>`;
+  }
+  list.innerHTML = html;
+}
+
+function finishCycle(text){
+  document.getElementById("summary-text").textContent = text;
+  renderWeightsTable();
+  renderHistory();
+  renderProgress();
+  renderDayClose();
+  showScreen("screen-summary");
+}
+
+function renderHistory(){
+  const list = document.getElementById("history-list");
+  if (sessionLog.length === 0){
+    list.innerHTML = `<div class="history-empty">Noch keine Zyklen gespeichert.</div>`;
+    return;
+  }
+  list.innerHTML = sessionLog.map(entry => `
+    <div class="history-entry">
+      <div class="h-num">${entry.dateLabel || ""}<br>${entry.timeLabel || ""}</div>
+      <div class="h-main">
+        Ebene ${entry.tierId} · ${entry.tierName} — ${entry.title}${entry.gatekeeper ? " <span class='tag'>Vorrang</span>" : ""}${entry.deepened ? " <span class='tag'>Vertiefung</span>" : ""}
+      </div>
+      <div class="h-qualia ${entry.qualiaClass}">${entry.qualiaLabel}</div>
+    </div>
+  `).join("");
+}
+
+function renderWeightsTable(){
+  const table = document.getElementById("weights-table");
+  let html = "<tr><th>Intervention</th><th>Ebene</th><th>Gewicht</th></tr>";
+  INTERVENTIONS.forEach(iv => {
+    html += `<tr><td>#${iv.id} ${iv.title}</td><td>${iv.tier}</td><td>${weights[iv.id].toFixed(2)}</td></tr>`;
+  });
+  table.innerHTML = html;
+}
+
+// ---- Daten-Backup: Export/Import (seit v0.19) ---------------------
+// Reines Vorsichts-Feature, keine neue Kern-Logik: alle drei localStorage-Töpfe (Gewichtungen,
+// Verlauf, Selbstwert-Reflexionen) als eine JSON-Datei sichern bzw. wieder einspielen. Wichtig,
+// sobald der Prototyp im echten Alltag läuft (siehe Projekthinweise) — sonst ist bei
+// Browser-Wechsel/-Reset/Cache-Löschung alles verloren, was v0.7 an echter Persistenz gebracht hat.
+function buildBackupPayload(){
+  return {
+    kind: "humaneed_backup",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    weights,
+    history: sessionLog,
+    reflections: dailyReflections
+  };
+}
+
+document.getElementById("btn-export-data").addEventListener("click", () => {
+  const payload = buildBackupPayload();
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const stamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `humaneed-backup-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+let pendingImport = null;
+
+document.getElementById("btn-import-data").addEventListener("click", () => {
+  document.getElementById("import-file-input").click();
+});
+
+document.getElementById("import-file-input").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  e.target.value = ""; // erlaubt erneute Auswahl derselben Datei (sonst feuert "change" beim zweiten Versuch nicht)
+  if (!file) return;
+  const statusEl = document.getElementById("import-status");
+  const reader = new FileReader();
+  reader.onload = () => {
+    let data;
+    try {
+      data = JSON.parse(reader.result);
+    } catch (err) {
+      statusEl.innerHTML = `<span style="color:var(--warn);">Datei konnte nicht gelesen werden — ist es eine gültige HUMANEED-Sicherung?</span>`;
+      return;
+    }
+    // Locker validieren statt strikt auf "kind"/"version" zu bestehen: mindestens eines der drei
+    // erwarteten Felder muss den erwarteten Typ haben. So werden offensichtlich fremde Dateien
+    // abgelehnt, ohne künftige Alt-Sicherungen (z. B. ohne "kind"-Feld) unnötig zu verwerfen.
+    const looksValid =
+      data && typeof data === "object" &&
+      (data.weights === undefined || (typeof data.weights === "object" && data.weights !== null)) &&
+      (data.history === undefined || Array.isArray(data.history)) &&
+      (data.reflections === undefined || (typeof data.reflections === "object" && data.reflections !== null)) &&
+      (data.weights || data.history || data.reflections);
+    if (!looksValid) {
+      statusEl.innerHTML = `<span style="color:var(--warn);">Das sieht nicht nach einer HUMANEED-Sicherung aus.</span>`;
+      return;
+    }
+    // Zweistufig statt sofortigem Überschreiben (bewusst kein natives confirm()-Fenster — passt nicht
+    // zum sonst nüchternen, browsereigene Dialoge vermeidenden Stil der App): erst anzeigen, was
+    // gefunden wurde, erst nach explizitem zweiten Klick tatsächlich übernehmen.
+    pendingImport = data;
+    const entryCount = Array.isArray(data.history) ? data.history.length : 0;
+    const dateLabel = data.exportedAt ? new Date(data.exportedAt).toLocaleDateString("de-DE") : "unbekanntes Datum";
+    statusEl.innerHTML = `
+      <div>Sicherung erkannt (${entryCount} Zyklen, Stand ${dateLabel}). Bestehende Daten in diesem Browser werden dabei ersetzt.</div>
+      <button class="secondary-btn" id="btn-confirm-import" style="margin-top:8px;">Jetzt übernehmen</button>
+    `;
+    document.getElementById("btn-confirm-import").addEventListener("click", () => {
+      applyImport(pendingImport);
+      pendingImport = null;
+      statusEl.innerHTML = `<span style="color:var(--accent);">Import abgeschlossen.</span>`;
+    });
+  };
+  reader.readAsText(file);
+});
+
+function applyImport(data){
+  if (data.weights && typeof data.weights === "object"){
+    // Fehlende Interventions-IDs (z. B. Sicherung aus einer Version mit weniger Items) mit dem
+    // aktuellen bzw. Default-Wert auffüllen statt zu verwerfen — resolveDepth()/pickIntervention()
+    // erwarten für jede aktuell existierende Intervention einen Gewichtswert.
+    INTERVENTIONS.forEach(iv => {
+      weights[iv.id] = typeof data.weights[iv.id] === "number" ? data.weights[iv.id] : (weights[iv.id] ?? 1.0);
+    });
+    saveWeights();
+  }
+  if (Array.isArray(data.history)){
+    sessionLog = data.history.slice(0, HISTORY_LIMIT);
+    saveHistory();
+  }
+  if (data.reflections && typeof data.reflections === "object"){
+    dailyReflections = data.reflections;
+    saveReflections();
+  }
+  renderWeightsTable();
+  renderHistory();
+  renderProgress();
+  renderDayClose();
+}
+
+document.getElementById("btn-restart").addEventListener("click", () => {
+  answers = {};
+  currentTierId = null;
+  currentIntervention = null;
+  currentDepth = null;
+  qualiaChoice = null;
+  document.querySelectorAll(".opt-btn").forEach(b => {
+    b.classList.remove("selected");
+    b.setAttribute("aria-checked", "false");
+  });
+  document.getElementById("btn-submit-checkin").disabled = true;
+  renderGreeting();
+  showScreen("screen-checkin");
+});
+
+document.getElementById("btn-reset-all").addEventListener("click", () => {
+  resetAllData();
+  renderWeightsTable();
+});
+
+renderGreeting();
+renderHistory();
+renderWeightsTable();
+renderProgress();
+renderDayClose();
+</script>
+
+</body>
+</html>
