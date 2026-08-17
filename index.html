@@ -19,6 +19,19 @@
     --warn-border:#e3c6a5;
     --btn-disabled-bg:#b7bdb8;
     --radius:14px;
+    /* Farbakzente pro Ebene (seit v0.25): sechs unterscheidbare, ruhige/organische Farbtöne statt
+       einer einzigen generischen --accent-Farbe für alle 6 Ebenen — macht auf einen Blick sichtbar,
+       WELCHE Ebene gerade gemeint ist (Check-in-Karte, Ergebnis-Screen, Verlauf), ohne neue Icons
+       oder Symbole einzuführen. Jede Farbe einzeln mit dem gleichen Kontrastrechner wie in v0.20/
+       v0.22 gegen --surface geprüft (>=4,5:1, da 12px fett kein "großer Text" ist). Absichtlich KEINE
+       Bedeutungshierarchie über die Farben (z. B. "rot=schlecht") — reine Wiedererkennung.
+       Reihenfolge folgt Kapitel III der Projekthinweise (Tier 0 Biologie ... Tier 5 Bedeutung). */
+    --tier0:#5c7a3c; /* Biologie — Moos/Olive */
+    --tier1:#a25834; /* Emotion — Terrakotta */
+    --tier2:#8d6a1a; /* Sozial — Bernstein/Gold */
+    --tier3:#3f6690; /* Kognition — Schiefer-Blau */
+    --tier4:#7d5a99; /* Kompetenz — Pflaume */
+    --tier5:#3d4f8a; /* Bedeutung — Indigo */
   }
   /* Dark Mode (seit v0.22) — reine prefers-color-scheme-Steuerung, kein manueller Umschalter/kein
      JS-Zustand/kein localStorage-Flag, nach dem Vorbild von HUMANEED_v8s Grundprinzip (EIN :root +
@@ -41,6 +54,15 @@
       --warn-soft:#3a2c1e;
       --warn-border:#6b4f34;
       --btn-disabled-bg:#40453f;
+      /* Hellere/entsättigtere Varianten derselben sechs Ebenen-Farben, einzeln gegen die dunkle
+         --surface geprüft (>=4,5:1) — gleiches Prinzip wie bei --accent/--warn oben: eigene Werte
+         pro Farbschema statt einer einzigen Farbe für beide Modi. */
+      --tier0:#95a880;
+      --tier1:#c2927b;
+      --tier2:#b49e6a;
+      --tier3:#829bb6;
+      --tier4:#aa93bc;
+      --tier5:#8a95b8;
     }
   }
   *{box-sizing:border-box;}
@@ -102,9 +124,21 @@
   .screen:focus-visible{
     outline:none;
   }
+  /* Gleiches Prinzip wie .screen oben, jetzt auch für die einzelne Check-in-Karte (seit v0.23):
+     sie bekommt bei jedem Schritt-Wechsel programmatisch den Fokus (siehe renderCheckinStep()),
+     damit Screenreader-Nutzer die neue Frage mitbekommen — ein sichtbarer Rahmen um die ganze
+     Karte wäre dabei nur visuelles Rauschen, die Options-Buttons darin behalten ihren eigenen
+     Fokus-Ring wie gewohnt. */
+  #checkin-list .card:focus-visible{
+    outline:none;
+  }
   @media (prefers-reduced-motion: reduce){
     *{
       transition:none !important;
+      /* seit v0.24 zusätzlich zu transition: die neuen Screen-/Schritt-Übergänge und die
+         Erledigt-Markierung laufen über echte CSS-@keyframes-animation, nicht nur transition —
+         ohne diese Zeile hätte die bestehende Regel sie gar nicht erfasst. */
+      animation:none !important;
     }
   }
   header{
@@ -134,8 +168,25 @@
     margin:0 auto;
     padding:0 18px;
   }
+  /* Bewegung/Übergänge (seit v0.24): war zuvor ein reiner Hart-Schnitt (display:none <-> block,
+     keinerlei Übergang) — einer der konkret benannten Gründe für das "Fragebogen"-Gefühl. Bewusst
+     eine einzige, sehr kurze, wiederverwendete @keyframes-Animation für sowohl Screen-Wechsel als
+     auch Check-in-Schritt-Wechsel (fade + leichtes Einschieben von unten) statt mehrerer
+     unterschiedlicher Effekte — ruhig und konsistent statt verspielt. Läuft automatisch beim
+     Sichtbarwerden (kein zusätzliches JS-Timing nötig), und wird über die bestehende
+     prefers-reduced-motion-Regel oben vollständig deaktiviert. */
+  @keyframes fade-slide-in{
+    from{ opacity:0; transform:translateY(6px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
   .screen{display:none;}
-  .screen.active{display:block;}
+  .screen.active{
+    display:block;
+    animation:fade-slide-in .28s ease;
+  }
+  .checkin-step-enter{
+    animation:fade-slide-in .2s ease;
+  }
 
   .card{
     background:var(--surface);
@@ -152,6 +203,15 @@
     font-weight:700;
     margin-bottom:6px;
   }
+  /* Überschreibt die generische --accent-Farbe von .tier-label mit der jeweiligen Ebenen-Farbe (seit
+     v0.25) — auf Check-in-Karte und Ergebnis-Screen angewendet. Gleiche Spezifität wie .tier-label,
+     entscheidet also die Reihenfolge im Stylesheet (diese Regeln stehen bewusst danach). */
+  .tier-accent-0{color:var(--tier0);}
+  .tier-accent-1{color:var(--tier1);}
+  .tier-accent-2{color:var(--tier2);}
+  .tier-accent-3{color:var(--tier3);}
+  .tier-accent-4{color:var(--tier4);}
+  .tier-accent-5{color:var(--tier5);}
   .question{
     font-size:17px;
     font-weight:600;
@@ -210,6 +270,72 @@
     font-size:15px;
     cursor:pointer;
     margin-top:10px;
+  }
+  .secondary-btn:disabled{
+    opacity:.45;
+    cursor:not-allowed;
+  }
+
+  /* "Erledigt"-Markierung, die sich sichtbar füllt (seit v0.24): reines Zustands-Feedback ("das ist
+     jetzt erfasst"), bewusst KEIN Erfolgs-Konfetti, kein Sound, keine Farbe außer dem ohnehin
+     bestehenden --on-accent/--accent — keine Belohnung, nur eine ruhige Bestätigung, dass der Klick
+     angekommen ist, bevor es zum Feedback-Screen weitergeht. */
+  #btn-done{position:relative; overflow:hidden;}
+  #btn-done .btn-done-label{
+    display:block;
+    transition:opacity .15s ease;
+  }
+  #btn-done .btn-done-check{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    opacity:0;
+    transform:scale(.5);
+    transition:opacity .2s ease, transform .2s ease;
+  }
+  #btn-done.is-completing .btn-done-label{opacity:0;}
+  #btn-done.is-completing .btn-done-check{opacity:1; transform:scale(1);}
+  #btn-done.is-completing{cursor:default;}
+
+  /* Geführter Check-in (seit v0.23): war zuvor eine einzige scrollbare Liste mit allen 6 Ebenen auf
+     einmal ("fühlt sich wie ein html scroll fragebogen an", Julians Feedback) — jetzt genau EIN
+     Ebenen-Schritt gleichzeitig sichtbar, mit Fortschrittsanzeige und Zurück-Möglichkeit. Bewusst
+     dieselbe Karten-/Options-Optik wie zuvor, nur zeitlich entzerrt statt inhaltlich verändert. */
+  .checkin-progress{margin-bottom:14px;}
+  .checkin-progress-text{
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--ink-soft);
+    font-weight:700;
+    margin-bottom:8px;
+  }
+  .checkin-progress-dots{display:flex;gap:6px;}
+  .progress-dot{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:var(--line);
+  }
+  /* Hintergrundfarbe von done/current-Punkten wird seit v0.25 inline pro Ebene gesetzt (siehe
+     renderCheckinProgress) — --accent hier nur als Rückfallwert, falls das Inline-Style je fehlt. */
+  .progress-dot.done{background:var(--accent);}
+  .progress-dot.current{
+    background:var(--accent);
+    outline:2px solid var(--accent-soft);
+    outline-offset:2px;
+  }
+  .checkin-nav{
+    display:flex;
+    gap:10px;
+  }
+  .checkin-nav .secondary-btn,
+  .checkin-nav .primary-btn{
+    width:auto;
+    flex:1;
+    margin-top:0;
   }
 
   .gatekeeper{
@@ -272,13 +398,31 @@
     background:none;border:none;padding:0;font-family:inherit;font-size:inherit;
   }
 
-  .debug{
-    font-size:12px;
-    color:var(--ink-soft);
-    margin-top:24px;
+  /* Produktreife (seit v0.26): ersetzt die alte .debug-Klasse — Backup-Buttons, interne
+     Gewichtungstabelle und Reset stehen jetzt gebündelt in einem zugeklappten "Erweiterte
+     Optionen"-Bereich statt offen auf dem Hauptbildschirm. */
+  .advanced-section{
+    margin-top:28px;
+    padding-top:16px;
+    border-top:1px solid var(--line);
   }
-  .debug table{width:100%;border-collapse:collapse;}
-  .debug td,.debug th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left;}
+  .advanced-section summary{font-size:14px;}
+  .advanced-group{
+    margin-top:18px;
+    padding-top:14px;
+    border-top:1px solid var(--line);
+  }
+  .advanced-group:first-of-type{border-top:none;padding-top:0;}
+  .advanced-label{
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:8px;
+  }
+  .advanced-section table{width:100%;border-collapse:collapse;font-size:12px;color:var(--ink-soft);}
+  .advanced-section td,.advanced-section th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left;}
 
   .history-entry{
     display:flex;
@@ -292,6 +436,17 @@
   .history-entry:last-child{border-bottom:none;}
   .history-entry .h-num{color:var(--ink-soft);font-size:11px;min-width:38px;line-height:1.3;}
   .history-entry .h-main{flex:1;}
+  /* Kleiner Ebenen-Farbpunkt vor jedem Verlaufseintrag (seit v0.25) — gleiche Farblogik wie
+     .tier-accent-N, hier aber als Punkt statt Textfarbe, da der Eintrag-Text selbst schon die
+     .h-qualia-Farbe trägt und nicht zusätzlich eingefärbt werden soll. */
+  .h-tier-dot{
+    display:inline-block;
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    margin-right:6px;
+    vertical-align:middle;
+  }
   .history-entry .h-qualia{font-size:12px;font-weight:700;}
   .h-qualia.better{color:var(--accent);}
   .h-qualia.worse{color:var(--warn);}
@@ -306,6 +461,22 @@
     font-size:14px;
   }
   .progress-row .p-value{font-weight:700;color:var(--accent);min-width:34px;}
+
+  /* Visuelle Unterscheidung der drei Kartentypen auf dem Summary-Screen (seit v0.25) — waren zuvor
+     identisch gestylt (nur ".card"), obwohl inhaltlich klar unterschiedliche Funktionen (Fortschritt,
+     Tagesabschluss, Verlauf). Bewusst nur ein farbiger linker Rand statt Icons/Symbolen — ruhig und
+     konsistent mit dem restlichen "nüchtern und funktional"-Stil. Farbwahl nicht willkürlich: die
+     Tagesabschluss-Reflexion ("Form gehalten oder verstellt?") ist laut Projekthinweise Kapitel 7
+     inhaltlich ein Ebene-5-Bedeutung-Thema (Selbstwert als Spiegel-Effekt) — deshalb --tier5 statt
+     einer neuen, unverbundenen Farbe. Fortschritt nutzt die ohnehin etablierte --accent-Farbe
+     (dieselbe wie z. B. der "Weiter"-Button), Verlauf bewusst neutral (--ink-soft), da reines Archiv
+     ohne aktive Handlung. */
+  #progress-card, #dayclose-card, #history-card{
+    border-left-width:4px;
+  }
+  #progress-card{border-left-color:var(--accent);}
+  #dayclose-card{border-left-color:var(--tier5);}
+  #history-card{border-left-color:var(--ink-soft);}
 
   footer{
     text-align:center;
@@ -328,8 +499,12 @@
 
   <!-- SCREEN 1: CHECK-IN -->
   <section id="screen-checkin" class="screen active" tabindex="-1" aria-label="Check-in">
+    <div class="checkin-progress" id="checkin-progress" aria-live="polite"></div>
     <div id="checkin-list"></div>
-    <button class="primary-btn" id="btn-submit-checkin" disabled>Status erfassen</button>
+    <div class="checkin-nav">
+      <button class="secondary-btn" id="btn-checkin-back" type="button">Zurück</button>
+      <button class="primary-btn" id="btn-checkin-next" type="button" disabled>Weiter</button>
+    </div>
   </section>
 
   <!-- SCREEN 2: RESULT / INTERVENTION -->
@@ -349,7 +524,12 @@
         <p id="result-why"></p>
       </details>
     </div>
-    <button class="primary-btn" id="btn-done">Erledigt</button>
+    <button class="primary-btn" id="btn-done">
+      <span class="btn-done-label">Erledigt</span>
+      <span class="btn-done-check" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 10 18 20 6"></polyline></svg>
+      </span>
+    </button>
     <button class="secondary-btn" id="btn-skip">Nicht jetzt</button>
   </section>
 
@@ -383,26 +563,42 @@
       <div class="tier-label">Dein Verlauf</div>
       <p style="color:var(--ink-soft);font-size:13px;margin-top:-6px;">Wird lokal in diesem Browser gespeichert (kein Server, kein Konto) — bleibt über Neuladen und Tage hinweg erhalten, bis du ihn zurücksetzt.</p>
       <div id="history-list"></div>
-      <div id="backup-controls" style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
-        <button class="secondary-btn" id="btn-export-data">Daten exportieren</button>
-        <button class="secondary-btn" id="btn-import-data">Daten importieren</button>
-        <input type="file" id="import-file-input" accept="application/json" style="display:none;">
-      </div>
-      <div id="import-status" style="font-size:13px;margin-top:8px;" aria-live="polite"></div>
     </div>
     <button class="primary-btn" id="btn-restart">Neuer Zyklus</button>
-    <div class="debug">
-      <details>
-        <summary>Debug: aktuelle Gewichtungen</summary>
+    <!-- Produktreife (seit v0.26): Backup-Buttons und die interne Gewichtungs-Tabelle standen zuvor
+         offen zwischen dem normalen Verlauf auf dem Hauptbildschirm — für uns als Entwickler
+         unauffällig, für eine fremde Testperson aber ein sofortiges "das ist ein unfertiges
+         Bastelprojekt"-Signal. Jetzt gebündelt in einem zugeklappten, unauffälligen Bereich; alle
+         IDs unverändert, damit die bestehende Export-/Import-/Reset-Logik unverändert weiterläuft. -->
+    <details class="advanced-section">
+      <summary>Erweiterte Optionen</summary>
+      <div class="advanced-group">
+        <div class="advanced-label">Daten</div>
+        <div id="backup-controls" style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="secondary-btn" id="btn-export-data">Daten exportieren</button>
+          <button class="secondary-btn" id="btn-import-data">Daten importieren</button>
+          <input type="file" id="import-file-input" accept="application/json" style="display:none;">
+        </div>
+        <div id="import-status" style="font-size:13px;margin-top:8px;" aria-live="polite"></div>
+      </div>
+      <div class="advanced-group">
+        <div class="advanced-label">Interne Gewichtungen</div>
         <table id="weights-table"></table>
-      </details>
-      <button class="secondary-btn" id="btn-reset-all" style="margin-top:14px;">Alle gespeicherten Daten löschen</button>
-    </div>
+      </div>
+      <div class="advanced-group">
+        <div class="advanced-label">Zurücksetzen</div>
+        <button class="secondary-btn" id="btn-reset-all">Alle gespeicherten Daten löschen</button>
+        <!-- Produktreife (seit v0.26): zuvor löschte ein einziger Klick sofort und unwiderruflich
+             alles — kein zweiter Schritt, keine Warnung. Gleiches zweistufige Muster wie beim
+             Datenimport seit v0.19: erst warnen, erst nach explizitem zweitem Klick wirklich löschen. -->
+        <div id="reset-status" style="font-size:13px;margin-top:8px;" aria-live="polite"></div>
+      </div>
+    </details>
   </section>
 
 </main>
 
-<footer>Prototyp · Core Loop · v0.22 · Dark Mode (Design-Tokens, automatisch nach Systemeinstellung) · kein Server, kein Konto</footer>
+<footer>Prototyp · Core Loop · v0.26 · Produktreife (Lösch-Bestätigung, Erweiterte Optionen) · kein Server, kein Konto</footer>
 
 <script>
 /* =========================================================
@@ -890,13 +1086,54 @@ let gatekeeperReason = null; // "tier0" | "tier0_chronic" | "tier1" | "tier1_chr
 // Verlauf über alle Sitzungen hinweg (persistent via localStorage, gedeckelt auf HISTORY_LIMIT Einträge).
 let sessionLog = loadHistory();
 
-// ---- 4. Check-in UI rendern ----------------------------------
+// ---- 4. Geführter Check-in: ein Schritt (eine Ebene) gleichzeitig (seit v0.23) ----------------
+// Vorher: alle 6 Ebenen-Karten auf einmal in #checkin-list, scrollbar untereinander — genau das
+// Feedback, das sich "wie ein html scroll fragebogen" anfühlte. Jetzt: exakt eine Karte sichtbar,
+// mit Fortschrittsanzeige ("Ebene X von 6") und Zurück-Möglichkeit, um eine frühere Antwort zu
+// korrigieren. Die eigentliche Kernschleife (Basis messen -> Synergie prüfen -> ein Fokus-Schritt)
+// ändert sich dadurch NICHT — nur wie die 6 Check-in-Fragen zeitlich präsentiert werden.
 const checkinList = document.getElementById("checkin-list");
-TIERS.forEach(tier => {
+let checkinStep = 0; // Index in TIERS, 0..5
+let autoAdvanceTimer = null;
+
+function renderCheckinProgress(){
+  const dots = TIERS.map((t, idx) => {
+    const state = idx < checkinStep ? "done" : idx === checkinStep ? "current" : "todo";
+    // Farbe pro Ebene statt generischem --accent (seit v0.25) — nur bei done/current gesetzt, ein
+    // offener "todo"-Punkt bleibt bewusst neutral (var(--line) aus der bestehenden CSS-Regel).
+    const style = state !== "todo" ? ` style="background-color:var(--tier${t.id});"` : "";
+    return `<span class="progress-dot ${state}"${style}></span>`;
+  }).join("");
+  document.getElementById("checkin-progress").innerHTML = `
+    <div class="checkin-progress-text">Ebene ${checkinStep + 1} von ${TIERS.length}</div>
+    <div class="checkin-progress-dots" aria-hidden="true">${dots}</div>
+  `;
+}
+
+function updateCheckinNav(){
+  const backBtn = document.getElementById("btn-checkin-back");
+  const nextBtn = document.getElementById("btn-checkin-next");
+  backBtn.disabled = checkinStep === 0;
+  const answered = answers[TIERS[checkinStep].id] !== undefined;
+  nextBtn.disabled = !answered;
+  nextBtn.textContent = checkinStep === TIERS.length - 1 ? "Status erfassen" : "Weiter";
+}
+
+// focusCard=false nur beim allerersten Aufbau (Seitenaufruf, Neustart) — dort würde ein
+// programmatischer Fokus dem Nutzer ungefragt den Fokus stehlen, bevor überhaupt etwas passiert
+// ist. Bei jedem folgenden Schritt (Weiter/Zurück/Auto-Advance) dagegen bewusst so wie showScreen()
+// bereits bei ganzen Screens: Fokus auf die neue Frage, damit Screenreader-Nutzer den Wechsel
+// mitbekommen, statt auf einem jetzt nicht mehr sichtbaren Button "gefangen" zu bleiben.
+function renderCheckinStep(index, opts = {}){
+  const { focus = true } = opts;
+  checkinStep = index;
+  const tier = TIERS[checkinStep];
+  checkinList.innerHTML = "";
   const card = document.createElement("div");
-  card.className = "card";
+  card.className = "card checkin-step-enter";
+  card.setAttribute("tabindex", "-1");
   card.innerHTML = `
-    <div class="tier-label">Ebene ${tier.id} · ${tier.name}</div>
+    <div class="tier-label tier-accent-${tier.id}">Ebene ${tier.id} · ${tier.name}</div>
     <div class="question" id="checkin-question-${tier.id}">${tier.question}</div>
     <div class="options" data-tier="${tier.id}" role="radiogroup" aria-labelledby="checkin-question-${tier.id}"></div>
   `;
@@ -909,7 +1146,9 @@ TIERS.forEach(tier => {
     // pro Ebene) — das war bisher rein visuell (".selected"-Klasse). role="radio"/aria-checked
     // macht das für Screenreader-Nutzer explizit, ohne am Look&Feel etwas zu ändern.
     btn.setAttribute("role", "radio");
-    btn.setAttribute("aria-checked", "false");
+    const alreadySelected = answers[tier.id] === opt.value;
+    btn.setAttribute("aria-checked", alreadySelected ? "true" : "false");
+    if (alreadySelected) btn.classList.add("selected");
     btn.addEventListener("click", () => {
       answers[tier.id] = opt.value;
       optsWrap.querySelectorAll(".opt-btn").forEach(b => {
@@ -918,17 +1157,55 @@ TIERS.forEach(tier => {
       });
       btn.classList.add("selected");
       btn.setAttribute("aria-checked", "true");
-      checkAllAnswered();
+      updateCheckinNav();
+      scheduleAutoAdvance();
     });
     optsWrap.appendChild(btn);
   });
   checkinList.appendChild(card);
-});
-
-function checkAllAnswered(){
-  const done = TIERS.every(t => answers[t.id] !== undefined);
-  document.getElementById("btn-submit-checkin").disabled = !done;
+  renderCheckinProgress();
+  updateCheckinNav();
+  if (focus) card.focus();
 }
+
+// Auto-Advance nach einer Auswahl: fühlt sich flüssig an (das war Teil des "Fragebogen"-Problems),
+// ohne dass die App etwas erzwingt — bewusst NICHT auf dem letzten Schritt (Ebene 5 · Bedeutung):
+// dort soll "Status erfassen" ein bewusster, expliziter Klick bleiben, kein automatischer Rutsch ins
+// Ergebnis (Wu-Wei-Prinzip: die App drängt nicht, auch nicht am Ende). Ein zweiter Klick auf eine
+// andere Option innerhalb der Wartezeit ersetzt den Timer, statt einen zweiten parallel laufen zu
+// lassen.
+function scheduleAutoAdvance(){
+  if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer);
+  if (checkinStep >= TIERS.length - 1) return;
+  const stepAtSchedule = checkinStep;
+  autoAdvanceTimer = setTimeout(() => {
+    autoAdvanceTimer = null;
+    if (checkinStep === stepAtSchedule) advanceCheckin();
+  }, 450);
+}
+
+function advanceCheckin(){
+  if (answers[TIERS[checkinStep].id] === undefined) return; // Sicherheitsnetz, sollte nie greifen
+  if (checkinStep < TIERS.length - 1){
+    renderCheckinStep(checkinStep + 1);
+  } else {
+    const raw = findBottleneckTier();
+    currentTierId = applyGatekeepers(raw);
+    currentIntervention = pickIntervention(currentTierId);
+    currentDepth = resolveDepth(currentIntervention);
+    renderResult();
+    showScreen("screen-result");
+  }
+}
+
+document.getElementById("btn-checkin-next").addEventListener("click", () => {
+  if (autoAdvanceTimer) { clearTimeout(autoAdvanceTimer); autoAdvanceTimer = null; }
+  advanceCheckin();
+});
+document.getElementById("btn-checkin-back").addEventListener("click", () => {
+  if (autoAdvanceTimer) { clearTimeout(autoAdvanceTimer); autoAdvanceTimer = null; }
+  if (checkinStep > 0) renderCheckinStep(checkinStep - 1);
+});
 
 // ---- 5. Core Loop: Bottleneck bestimmen + Gatekeeper ---------
 function findBottleneckTier(){
@@ -1121,15 +1398,6 @@ function showScreen(id){
   next.focus();
 }
 
-document.getElementById("btn-submit-checkin").addEventListener("click", () => {
-  const raw = findBottleneckTier();
-  currentTierId = applyGatekeepers(raw);
-  currentIntervention = pickIntervention(currentTierId);
-  currentDepth = resolveDepth(currentIntervention);
-  renderResult();
-  showScreen("screen-result");
-});
-
 const GATEKEEPER_MESSAGES = {
   tier0: "Dein Fundament (Ebene 0 · Biologie) ist gerade instabil (unter 30&nbsp;%). Fokus-Arbeit (Ebene 3 · Kognition) braucht Energie, die gerade fehlt — deshalb zuerst ein Schritt bei Biologie.",
   tier0_chronic: "Dein Fundament (Ebene 0 · Biologie) liegt heute nicht extrem niedrig — aber Bedeutung (Ebene 5) war über deine letzten Zyklen anhaltend gering. Das macht dein Fundament empfindlicher, als der heutige Wert allein zeigt — deshalb heute vorsichtshalber zuerst ein Schritt bei Biologie.",
@@ -1140,12 +1408,19 @@ const GATEKEEPER_MESSAGES = {
 };
 
 function renderResult(){
+  // Setzt die Erledigt-Markierung (seit v0.24) zurück, falls sie vom letzten Zyklus noch "gefüllt"
+  // ist — #btn-done wird nicht neu erzeugt, nur dieser Screen wird wiederverwendet.
+  document.getElementById("btn-done").classList.remove("is-completing");
   const tier = TIERS.find(t => t.id === currentTierId);
   const gk = document.getElementById("gatekeeper-note");
   gk.innerHTML = gatekeeperReason
     ? `<div class="gatekeeper">${GATEKEEPER_MESSAGES[gatekeeperReason]}</div>`
     : "";
-  document.getElementById("result-tier-label").textContent = `Schwächstes Glied: Ebene ${tier.id} · ${tier.name}`;
+  // className statt nur textContent gesetzt (seit v0.25): #result-tier-label wird zwischen Zyklen
+  // wiederverwendet, die Ebenen-Farbklasse muss also bei jedem Ergebnis neu zugewiesen werden.
+  const resultTierLabel = document.getElementById("result-tier-label");
+  resultTierLabel.className = `tier-label tier-accent-${tier.id}`;
+  resultTierLabel.textContent = `Schwächstes Glied: Ebene ${tier.id} · ${tier.name}`;
   // currentDepth statt currentIntervention direkt: liefert entweder die Basis- oder die vertiefte
   // Stufe (siehe resolveDepth, seit v0.15) — der Titel bleibt in beiden Fällen gleich, nur Handlung/
   // Schritte unterscheiden sich. Die "Vertiefung"-Markierung ist bewusst nüchtern gehalten (gleicher
@@ -1160,8 +1435,21 @@ function renderResult(){
   document.getElementById("result-variation").textContent = currentDepth.variation || "";
 }
 
-document.getElementById("btn-done").addEventListener("click", () => {
-  showScreen("screen-feedback");
+// Respektiert dieselbe Systemeinstellung wie die CSS-Regel oben — hier zusätzlich gebraucht, weil
+// die Erledigt-Markierung nicht nur eine CSS-Animation ist, sondern auch eine kurze, bewusste
+// JS-Verzögerung VOR dem Screen-Wechsel einbaut (siehe btn-done unten). Bei reduzierter Bewegung
+// entfällt diese Verzögerung komplett, statt nur die (dann ohnehin unsichtbare) Animation laufen zu
+// lassen, während der Screen-Wechsel künstlich verzögert bliebe.
+function prefersReducedMotion(){
+  return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+}
+
+document.getElementById("btn-done").addEventListener("click", (e) => {
+  const btn = e.currentTarget;
+  if (btn.classList.contains("is-completing")) return; // Doppelklick-Schutz während der kurzen Markierung
+  btn.classList.add("is-completing");
+  const delay = prefersReducedMotion() ? 0 : 480;
+  setTimeout(() => { showScreen("screen-feedback"); }, delay);
 });
 document.getElementById("btn-skip").addEventListener("click", () => {
   // Wu-Wei-Prinzip: kein Druck, nur leichte Anpassung der Gewichtung, kein Feedback-Screen nötig
@@ -1320,7 +1608,7 @@ function renderHistory(){
     <div class="history-entry">
       <div class="h-num">${entry.dateLabel || ""}<br>${entry.timeLabel || ""}</div>
       <div class="h-main">
-        Ebene ${entry.tierId} · ${entry.tierName} — ${entry.title}${entry.gatekeeper ? " <span class='tag'>Vorrang</span>" : ""}${entry.deepened ? " <span class='tag'>Vertiefung</span>" : ""}
+        <span class="h-tier-dot" style="background-color:var(--tier${entry.tierId});" aria-hidden="true"></span>Ebene ${entry.tierId} · ${entry.tierName} — ${entry.title}${entry.gatekeeper ? " <span class='tag'>Vorrang</span>" : ""}${entry.deepened ? " <span class='tag'>Vertiefung</span>" : ""}
       </div>
       <div class="h-qualia ${entry.qualiaClass}">${entry.qualiaLabel}</div>
     </div>
@@ -1448,21 +1736,43 @@ document.getElementById("btn-restart").addEventListener("click", () => {
   currentIntervention = null;
   currentDepth = null;
   qualiaChoice = null;
-  document.querySelectorAll(".opt-btn").forEach(b => {
+  // Qualia-Buttons tragen ebenfalls die Klasse .opt-btn, werden aber (anders als die Check-in-
+  // Optionen) nicht bei jedem Schritt neu aufgebaut — ihre "selected"-Markierung muss daher hier
+  // separat zurückgesetzt werden.
+  document.querySelectorAll("[data-qualia]").forEach(b => {
     b.classList.remove("selected");
     b.setAttribute("aria-checked", "false");
   });
-  document.getElementById("btn-submit-checkin").disabled = true;
   renderGreeting();
+  renderCheckinStep(0, { focus: false });
   showScreen("screen-checkin");
 });
 
+// Produktreife (seit v0.26): zweistufig statt sofortigem, unwiderruflichem Löschen bei einem
+// einzigen Klick — gleiches Muster wie beim Datenimport (erst warnen, erst nach explizitem
+// zweitem Klick tatsächlich löschen; zusätzlich ein Abbrechen-Pfad, den der Import-Fluss nicht
+// braucht, weil dort das Auswählen einer anderen Datei bereits ein impliziter Abbruch ist).
 document.getElementById("btn-reset-all").addEventListener("click", () => {
-  resetAllData();
-  renderWeightsTable();
+  const statusEl = document.getElementById("reset-status");
+  statusEl.innerHTML = `
+    <div style="color:var(--warn);">Wirklich alle gespeicherten Daten (Verlauf, Gewichtungen, Tagesreflexionen) unwiderruflich löschen?</div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="secondary-btn" id="btn-confirm-reset">Ja, endgültig löschen</button>
+      <button class="secondary-btn" id="btn-cancel-reset">Abbrechen</button>
+    </div>
+  `;
+  document.getElementById("btn-confirm-reset").addEventListener("click", () => {
+    resetAllData();
+    renderWeightsTable();
+    statusEl.innerHTML = `<span style="color:var(--accent);">Alle Daten wurden gelöscht.</span>`;
+  });
+  document.getElementById("btn-cancel-reset").addEventListener("click", () => {
+    statusEl.innerHTML = "";
+  });
 });
 
 renderGreeting();
+renderCheckinStep(0, { focus: false });
 renderHistory();
 renderWeightsTable();
 renderProgress();
