@@ -144,6 +144,134 @@
   header{
     padding:28px 20px 14px 20px;
     text-align:center;
+    position:relative;
+  }
+  /* Stimmungs-Widget (seit v0.39) -----------------------------------------------------------------
+     Ersetzt den gated Screen "screen-mood" aus v0.38: Julian wollte die Stimmung "jederzeit" ändern
+     können, nicht nur einmal zu Zyklusbeginn — deshalb jetzt ein dauerhaft sichtbares, kleines Feld
+     oben rechts im Header statt eines eigenen Zwischen-Screens. Die Rahmung-Grenze aus v0.38 bleibt
+     unverändert bestehen (siehe MOOD_OPTIONS-Kommentar im Script): das Widget beeinflusst weiterhin
+     nur den Rahmungssatz auf dem Ergebnis-Screen, nie welche Ebene/Intervention gewählt wird. */
+  .mood-widget-btn{
+    position:absolute;
+    top:16px;
+    right:16px;
+    width:36px;
+    height:36px;
+    border-radius:50%;
+    border:1.5px dashed var(--ink-soft);
+    background:transparent;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:17px;
+    line-height:1;
+    cursor:pointer;
+    color:var(--ink-soft);
+    padding:0;
+  }
+  .mood-widget-btn.is-set{
+    border-style:solid;
+    border-color:var(--accent);
+    font-size:19px;
+  }
+  .mood-widget-btn:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:2px;
+  }
+  .mood-popover{
+    position:absolute;
+    top:58px;
+    right:16px;
+    z-index:20;
+    width:220px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.16);
+    padding:12px;
+    text-align:left;
+    /* max-height/overflow (seit v0.43): bei 15 statt 6-8 Stimmungen wird das 3-Spalten-Raster deutlich
+       höher (5 Zeilen) — ohne Begrenzung könnte das Popover auf kleinen Bildschirmen über den
+       sichtbaren Bereich hinauswachsen. Nur das Options-Raster scrollt (siehe .mood-popover-options),
+       Hinweistext und "Zurücksetzen" bleiben immer sichtbar. */
+    max-height:calc(100vh - 90px);
+    display:flex;
+    flex-direction:column;
+  }
+  .mood-popover[hidden]{ display:none; }
+  .mood-popover-hint{
+    margin:0 0 10px 0;
+    font-size:12px;
+    font-style:italic;
+    color:var(--ink-soft);
+    line-height:1.4;
+    flex-shrink:0;
+  }
+  .mood-popover-options{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:6px;
+    overflow-y:auto;
+    min-height:0;
+  }
+  .mood-popover-options button{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:2px;
+    padding:7px 2px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:transparent;
+    cursor:pointer;
+    font-size:19px;
+    color:var(--ink);
+  }
+  /* Cluster-Zwischenüberschrift (seit v0.43-Nachschärfung) — spannt als eigenes Grid-Item alle 3
+     Spalten, damit "Energiegeladen"/"Ruhig" als Zeile über der jeweiligen Emoji-Gruppe steht. */
+  .mood-popover-group-label{
+    grid-column:1 / -1;
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin:8px 0 2px;
+  }
+  .mood-popover-group-label:first-child{ margin-top:0; }
+  .mood-popover-options button.selected{
+    border-color:var(--accent);
+    background:var(--accent-soft, rgba(0,0,0,0.05));
+  }
+  .mood-popover-options button .mood-popover-label{
+    font-size:9px;
+    font-style:normal;
+    color:var(--ink-soft);
+    line-height:1.15;
+    text-align:center;
+  }
+  /* Mood-Skilltree-Level (seit v0.40): bewusst noch kleiner/leiser als das Label darüber — sichtbarer
+     Fortschritt, aber nüchtern, keine auffällige Badge-Optik. */
+  .mood-popover-options button .mood-popover-level{
+    font-size:8px;
+    font-style:normal;
+    color:var(--accent);
+    line-height:1;
+  }
+  .mood-popover-clear{
+    display:block;
+    width:100%;
+    margin-top:10px;
+    padding:6px;
+    border-radius:8px;
+    border:none;
+    background:transparent;
+    color:var(--ink-soft);
+    font-size:12px;
+    text-decoration:underline;
+    cursor:pointer;
+    flex-shrink:0;
   }
   header h1{
     margin:0;
@@ -217,13 +345,30 @@
     font-weight:600;
     margin:0 0 14px 0;
   }
+  /* Adaptiver Check-in (seit v0.27): Hinweistext auf der "Passt noch?"-Bestätigungskarte. */
+  .carry-hint{
+    font-size:14px;
+    color:var(--ink-soft);
+    margin:0 0 14px 0;
+  }
+  #btn-carry-override{margin-top:10px;}
+
+  /* Erstöffnungs-Kontext (seit v0.28) */
+  .welcome-text{
+    font-size:15px;
+    line-height:1.5;
+    color:var(--ink);
+    margin:0 0 14px 0;
+  }
   .options{
     display:flex;
     flex-direction:column;
     gap:10px;
   }
   .opt-btn{
-    display:block;
+    display:flex;
+    align-items:center;
+    gap:12px;
     width:100%;
     text-align:left;
     padding:14px 16px;
@@ -235,6 +380,24 @@
     cursor:pointer;
     transition:border-color .15s, background .15s;
   }
+  /* Icon-Check-in (seit v0.33): .opt-btn ist jetzt ein Flex-Container statt reinem Block — betrifft
+     auch die textbasierten Verwendungen ohne Icon (Tagesabschluss, Qualia-Feedback), die aber alle in
+     einer .row stecken (siehe .row .opt-btn unten) und dort explizit zentriert werden, statt sich auf
+     das alte text-align:left zu verlassen. */
+  /* Seit v0.37: Emoji statt Strichzeichnung (siehe SCALE_EMOJI-Kommentar im Script) — Emoji sind
+     selbst-farbige Glyphen, kein currentColor-Vektor mehr wie zuvor, deshalb hier font-size statt
+     width/height/color; die alte .selected-Einfärbung des Icons entfällt (Auswahl bleibt weiterhin über
+     Rahmen/Hintergrund der Karte klar erkennbar, siehe .opt-btn.selected unten). */
+  .opt-btn .opt-icon{
+    flex:0 0 auto;
+    width:26px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+    line-height:1;
+  }
+  .opt-btn .opt-label{flex:1;}
   .opt-btn:hover{border-color:var(--accent);}
   .opt-btn.selected{
     border-color:var(--accent);
@@ -348,6 +511,49 @@
     margin-bottom:16px;
   }
 
+  /* Seit v0.30: bewusst NICHT die --warn-Farbe (die ist für "Reihenfolge geändert, hier ist die
+     Erklärung" reserviert, siehe .gatekeeper oben) — dieser Hinweis ist kein Alarm, sondern ein leiser,
+     warmer Kontext-Hinweis (Wu-Wei-Prinzip), deshalb die ruhigeren --accent-Töne. */
+  .disruption-note{
+    background:var(--accent-soft);
+    color:var(--accent);
+    border-radius:10px;
+    padding:12px 14px;
+    font-size:14px;
+    margin-bottom:16px;
+  }
+
+  /* Seit v0.40: eigener, dritter Hinweistyp — weder Warnung (.gatekeeper) noch warmer Kontext-Hinweis
+     (.disruption-note), sondern reine Transparenz: "dein Emoji wollte etwas anderes, der Sicherheits-
+     Vorrang hat aber gewonnen". Bewusst am unauffälligsten der drei (nur Rahmen, keine Füllfarbe) —
+     das ist erwartetes, korrektes Verhalten, kein Grund zur Sorge. */
+  .mood-override-note{
+    border:1px solid var(--line);
+    color:var(--ink-soft);
+    border-radius:10px;
+    padding:12px 14px;
+    font-size:14px;
+    margin-bottom:16px;
+  }
+
+  /* Hashtags (seit v0.41) — rein thematische Einordnung neben dem Vorschlag, bewusst nicht als
+     interaktive Buttons hier (Filtern passiert im Emoji-Tagebuch auf dem Summary-Screen, nicht hier),
+     deshalb schlicht als <span> statt <button>. Gleicher gedämpfte Ton wie .variation-note. */
+  .result-tags{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin:4px 0 12px;
+  }
+  .tag-chip{
+    font-size:12px;
+    color:var(--ink-soft);
+    background:var(--bg);
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:3px 10px;
+  }
+
   .intervention-title{
     font-size:20px;
     font-weight:700;
@@ -382,12 +588,16 @@
   details ol{margin:8px 0 0 0;padding-left:20px;}
   details ol li{margin-bottom:4px;}
   .variation-note{font-style:italic;color:var(--ink-soft);margin-top:8px !important;}
+  /* Eingangs-Stimmung (seit v0.38): gleicher Stil wie .variation-note (leise, kursiv, ink-soft) —
+     bewusst kein eigener Farbakzent, damit klar bleibt, dass das nur eine Rahmung ist, keine
+     inhaltliche Ebenen-Zuordnung wie bei .tier-accent-N. */
+  .mood-framing{font-style:italic;color:var(--ink-soft);font-size:15px;margin:0 0 12px 0;}
 
   .row{
     display:flex;
     gap:10px;
   }
-  .row .opt-btn{flex:1;text-align:center;}
+  .row .opt-btn{flex:1;text-align:center;justify-content:center;}
 
   .dayclose-question{font-size:15px;font-style:italic;color:var(--ink-soft);font-weight:500;margin-bottom:10px;}
   .dayclose-done{font-size:14px;color:var(--accent);font-weight:600;}
@@ -453,6 +663,48 @@
   .h-qualia.same{color:var(--ink-soft);}
   .history-empty{color:var(--ink-soft);font-size:13px;}
 
+  /* Emoji-Tagebuch (seit v0.41) — Pro-Emoji-Zeilen (ähnliches Muster wie .history-entry, aber mit
+     größerem Emoji statt Farbpunkt) plus klickbare Tag-Chips zum Filtern. */
+  .diary-mood-row{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    padding:8px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .diary-mood-row:last-child{border-bottom:none;}
+  .diary-mood-emoji{font-size:22px;line-height:1.2;}
+  .diary-mood-info{flex:1;}
+  .diary-mood-label{font-size:14px;font-weight:700;}
+  .diary-mood-meta{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .diary-tags{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:6px;
+    margin-top:8px;
+  }
+  .diary-tag-btn{
+    cursor:pointer;
+    font:inherit;
+    line-height:1.3;
+  }
+  .diary-tag-btn.is-active{
+    border-color:var(--accent);
+    color:var(--accent);
+  }
+  .diary-tags-more{font-size:12px;color:var(--ink-soft);align-self:center;}
+  .diary-filtered-label{font-size:13px;font-weight:700;margin-top:12px;margin-bottom:4px;}
+  /* Tag-Statistik (seit v0.42) — eine knappe Zusammenfassung über der Tag-Wolke, keine eigene neue
+     Datenquelle, nur eine andere Aggregation von computeTagIndex(). */
+  .diary-tag-stats{font-size:12px;color:var(--ink-soft);margin-top:10px;}
+  /* "Ähnliche Aufgaben aus dem Inventar" (seit v0.42) — rein informativ, bewusst NICHT klickbar/
+     auswählbar: das Kernprinzip "genau eine Intervention pro Zyklus" bleibt dadurch unberührt, das
+     hier ist eine rückblickende Bibliotheks-Ansicht im Tagebuch, kein Auswahl-Mechanismus. */
+  .diary-related-label{font-size:13px;font-weight:700;margin-top:14px;margin-bottom:4px;}
+  .diary-related-item{font-size:13px;color:var(--ink-soft);padding:4px 0;border-bottom:1px solid var(--line);}
+  .diary-related-item:last-child{border-bottom:none;}
+
   .progress-row{
     display:flex;
     align-items:baseline;
@@ -466,8 +718,9 @@
      identisch gestylt (nur ".card"), obwohl inhaltlich klar unterschiedliche Funktionen (Fortschritt,
      Tagesabschluss, Verlauf). Bewusst nur ein farbiger linker Rand statt Icons/Symbolen — ruhig und
      konsistent mit dem restlichen "nüchtern und funktional"-Stil. Farbwahl nicht willkürlich: die
-     Tagesabschluss-Reflexion ("Form gehalten oder verstellt?") ist laut Projekthinweise Kapitel 7
-     inhaltlich ein Ebene-5-Bedeutung-Thema (Selbstwert als Spiegel-Effekt) — deshalb --tier5 statt
+     Tagesabschluss-Reflexion ("Bist du dir heute treu geblieben, oder hast du dich verbogen?", bis
+     v0.28 "Form gehalten oder verstellt?" — siehe v0.29-Notiz weiter unten) ist laut Projekthinweise
+     Kapitel 7 inhaltlich ein Ebene-5-Bedeutung-Thema (Selbstwert als Spiegel-Effekt) — deshalb --tier5 statt
      einer neuen, unverbundenen Farbe. Fortschritt nutzt die ohnehin etablierte --accent-Farbe
      (dieselbe wie z. B. der "Weiter"-Button), Verlauf bewusst neutral (--ink-soft), da reines Archiv
      ohne aktive Handlung. */
@@ -477,6 +730,10 @@
   #progress-card{border-left-color:var(--accent);}
   #dayclose-card{border-left-color:var(--tier5);}
   #history-card{border-left-color:var(--ink-soft);}
+  /* #outcome-card (seit v0.31) bewusst OHNE Farbzuordnung nach demselben Muster — die anderen drei
+     Karten gehören inhaltlich zu einem Bereich (Fortschritt=--accent, Tagesabschluss=Ebene 5,
+     Verlauf=neutrales Archiv); die wöchentliche Wirkungsmessung misst aber das Gesamtsystem über alle
+     Ebenen hinweg, keine einzelne Farbe würde das treffen. */
 
   footer{
     text-align:center;
@@ -493,12 +750,47 @@
 <header>
   <h1>HUMANEED</h1>
   <p id="context-greeting" class="context-greeting" aria-live="polite"></p>
+  <!-- Stimmungs-Widget (seit v0.39, ersetzt den gated Screen "screen-mood" aus v0.38) -------------
+       Julian: "die app sollte jederzeit oben rechts ein kleines feld mit einem emoji haben das
+       jederzeit geändert werden kann". Dauerhaft sichtbar in jedem Screen (Header ist außerhalb von
+       main/.screen), nicht an Zyklusstart gebunden. Rahmung-Grenze aus v0.38 bleibt: siehe
+       MOOD_OPTIONS-Kommentar im Script — beeinflusst nur den Satz auf dem Ergebnis-Screen, nie die
+       Auswahl von Ebene/Intervention. -->
+  <button id="mood-widget-btn" class="mood-widget-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Stimmung wählen">
+    <span id="mood-widget-emoji" aria-hidden="true">+</span>
+  </button>
+  <div id="mood-popover" class="mood-popover" hidden role="menu" aria-label="Stimmung wählen">
+    <p class="mood-popover-hint">Ändert nur, wie dein vorgeschlagener Schritt formuliert ist — nicht, was dir vorgeschlagen wird. Jederzeit änderbar.</p>
+    <div id="mood-popover-options" class="mood-popover-options"></div>
+    <button class="mood-popover-clear" id="btn-mood-clear" type="button">Zurücksetzen</button>
+  </div>
 </header>
 
 <main id="main-content" tabindex="-1">
 
+  <!-- SCREEN 0: WILLKOMMEN (seit v0.28) -->
+  <!-- Erstöffnungs-Kontext, nicht "Onboarding": kein mehrstufiger Wizard, keine Abfrage, kein Zwang
+       zum Lesen — ein einziger, überspringbarer Hinweis, was die App ist, bevor der erste Check-in
+       startet. Wird nur gezeigt, solange humaneed_welcome_seen_v1 nicht gesetzt ist (siehe Bootstrap
+       am Ende des Scripts); danach dauerhaft übersprungen, auch für bereits bestehende Nutzer:innen,
+       die vor v0.28 schon Verlauf haben (harmlos, einmaliger Kontext-Hinweis). -->
+  <section id="screen-welcome" class="screen active" tabindex="-1" aria-label="Willkommen">
+    <div class="card">
+      <div class="tier-label">Willkommen</div>
+      <div class="question">HUMANEED in einem Satz</div>
+      <p class="welcome-text">Jeden Tag findet HUMANEED den einen Bereich, der bei dir gerade am meisten Aufmerksamkeit braucht — Körper, Gefühl, soziale Nähe, Fokus, Können oder Sinn — und schlägt dafür genau eine kleine, machbare Handlung vor.</p>
+      <p class="welcome-text">Kein Punktesystem, keine Ziele, kein Druck: nur ein kurzer Check-in, ein Vorschlag, und wie es sich für dich anfühlt.</p>
+      <p class="carry-hint">Dauert unter einer Minute.</p>
+      <button class="primary-btn" id="btn-welcome-start" type="button">Los geht's</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 0b "EINGANGS-STIMMUNG" wurde in v0.39 entfernt: der gated Zwischen-Screen aus v0.38 wich
+       dem dauerhaften Stimmungs-Widget oben rechts im Header (siehe dort), weil die Stimmung laut
+       Julian "jederzeit" änderbar sein soll, nicht nur einmal pro Zyklus. -->
+
   <!-- SCREEN 1: CHECK-IN -->
-  <section id="screen-checkin" class="screen active" tabindex="-1" aria-label="Check-in">
+  <section id="screen-checkin" class="screen" tabindex="-1" aria-label="Check-in">
     <div class="checkin-progress" id="checkin-progress" aria-live="polite"></div>
     <div id="checkin-list"></div>
     <div class="checkin-nav">
@@ -510,10 +802,20 @@
   <!-- SCREEN 2: RESULT / INTERVENTION -->
   <section id="screen-result" class="screen" tabindex="-1" aria-label="Empfehlung">
     <div id="gatekeeper-note" aria-live="polite"></div>
+    <div id="disruption-note" aria-live="polite"></div>
+    <div id="mood-override-note" aria-live="polite"></div>
     <div class="card">
       <div class="tier-label" id="result-tier-label"></div>
+      <!-- Eingangs-Stimmung (seit v0.38): rein sprachliche Rahmung, nur sichtbar wenn diesen Zyklus
+           ein Stimmungs-Emoji gewählt wurde (siehe renderResult()) — beeinflusst nie Titel/Handlung/
+           Schritte selbst, die kommen unverändert aus der ganz normal ausgewählten Intervention. -->
+      <p id="result-mood-framing" class="mood-framing" style="display:none;"></p>
       <div class="intervention-title" id="result-title"></div>
       <div class="intervention-action" id="result-action"></div>
+      <!-- Hashtags (seit v0.41): rein thematische Einordnung, keine Funktion für die Auswahl-Logik
+           selbst — dieselben Tags sind auch die Grundlage für die Filter-Chips im Emoji-Tagebuch
+           (siehe computeTagIndex() und die Tagebuch-Karte auf dem Summary-Screen). -->
+      <div class="result-tags" id="result-tags" aria-label="Themen dieser Aufgabe"></div>
       <details>
         <summary>So geht's genauer</summary>
         <ol id="result-steps"></ol>
@@ -559,6 +861,26 @@
       <div class="tier-label">Tagesabschluss</div>
       <div id="dayclose-content"></div>
     </div>
+    <!-- Wöchentliche Wirkungsmessung (seit v0.31): siehe JS-Kommentar bei renderOutcome() für die
+         Begründung — bewusst getrennt von der Tages-Qualia-Frage, um deren Verzerrung nicht zu erben. -->
+    <div class="card" id="outcome-card">
+      <div class="tier-label">Wirkung über Zeit</div>
+      <p style="color:var(--ink-soft);font-size:13px;margin-top:-6px;">Einmal pro Woche, unabhängig vom Tages-Check-in — damit ehrlich sichtbar wird, ob sich über Zeit wirklich etwas verändert, nicht nur, wie oft du die App nutzt.</p>
+      <div id="outcome-content"></div>
+    </div>
+    <!-- Emoji-Tagebuch (seit v0.41): Julians eigener Vorschlag im Anschluss an v0.40 — ein lokal aus
+         dem ohnehin gespeicherten Verlauf ABGELEITETES Journal, keine neue Abfrage, keine echte
+         Datenbank (kein Server, kein Konto, siehe computeMoodDiary()/computeTagIndex()). Bleibt
+         verborgen, solange noch nie eine Stimmung gewählt wurde (siehe renderDiary()). -->
+    <div class="card" id="diary-card" style="display:none;">
+      <div class="tier-label">Emoji-Tagebuch</div>
+      <p style="color:var(--ink-soft);font-size:13px;margin-top:-6px;">Ein Rückblick, abgeleitet aus deinem Verlauf und deinen Stimmungen — keine neue Abfrage, nur eine andere Sicht auf das, was du ohnehin schon beantwortet hast.</p>
+      <div id="diary-moods"></div>
+      <div id="diary-tag-stats" class="diary-tag-stats"></div>
+      <div id="diary-tags" class="diary-tags"></div>
+      <div id="diary-filtered"></div>
+      <div id="diary-related"></div>
+    </div>
     <div class="card" id="history-card">
       <div class="tier-label">Dein Verlauf</div>
       <p style="color:var(--ink-soft);font-size:13px;margin-top:-6px;">Wird lokal in diesem Browser gespeichert (kein Server, kein Konto) — bleibt über Neuladen und Tage hinweg erhalten, bis du ihn zurücksetzt.</p>
@@ -585,6 +907,22 @@
         <div class="advanced-label">Interne Gewichtungen</div>
         <table id="weights-table"></table>
       </div>
+      <!-- Transparenz-Erweiterung (Sinnhaftigkeits-Prüfung nach v0.33, Befund 3): die personalisierte
+           Gatekeeper-Empfindlichkeit (seit v0.32) war bisher nirgends einsehbar, anders als die
+           Interventions-Gewichtungen direkt darüber — obwohl sie ein ebenso individuell gelernter,
+           sicherheitsrelevanter Parameter ist. Gleiches Prinzip wie die Gewichtungstabelle: nur lesbar,
+           nicht editierbar, gebündelt in "Erweiterte Optionen". -->
+      <div class="advanced-group">
+        <div class="advanced-label">Gatekeeper-Empfindlichkeit</div>
+        <table id="sensitivity-table"></table>
+      </div>
+      <!-- Seit v0.40: gleiches Transparenz-Prinzip wie die beiden Tabellen oben — der neue, pro Emoji
+           unabhängige Skilltree ist ein weiterer individuell gelernter Zustand, der nicht unsichtbar
+           bleiben soll. Nur lesbar, nicht editierbar. -->
+      <div class="advanced-group">
+        <div class="advanced-label">Mood-Skilltree</div>
+        <table id="mood-skilltree-table"></table>
+      </div>
       <div class="advanced-group">
         <div class="advanced-label">Zurücksetzen</div>
         <button class="secondary-btn" id="btn-reset-all">Alle gespeicherten Daten löschen</button>
@@ -598,7 +936,7 @@
 
 </main>
 
-<footer>Prototyp · Core Loop · v0.26 · Produktreife (Lösch-Bestätigung, Erweiterte Optionen) · kein Server, kein Konto</footer>
+<footer>Prototyp · Core Loop · v0.43 · 15 Stimmungen + Cross-Learning · kein Server, kein Konto</footer>
 
 <script>
 /* =========================================================
@@ -661,6 +999,131 @@ const TIERS = [
     ]}
 ];
 
+// ---- 1b. Icon-Check-in (seit v0.33, Emoji seit v0.37) -----------------------------------------
+// Recherche zu Vergleichs-Apps (Daylio, Bearable, How We Feel — siehe Projektnotizen) zeigte: der
+// Unterschied zwischen "fühlt sich wie ein Formular an" und "fühlt sich schnell an" liegt oft weniger
+// an der Fragenzahl als an der Optik der einzelnen Antwort — Icon-Tap statt Text-Button lässt sich
+// schneller visuell erfassen als eine Liste von Lese-Optionen. Bewusst NICHT die tier-spezifischen
+// Textlabels ersetzt (die genaue Formulierung pro Ebene ist über ~20 Versionen bewusst geschärft
+// worden, siehe z. B. v0.6/v0.10) — stattdessen bekommt jede der fünf Stufen zusätzlich ein Icon als
+// schnellen visuellen Anker, Text bleibt vollständig erhalten. Alle sechs Ebenen nutzen dieselbe
+// 10/30/50/70/90-Skala mit gleicher Richtung (niedrigster Wert = schlechtester Zustand) — ein
+// einziges, wiederverwendbares Icon-Set reicht für alle Ebenen UND (seit v0.31) die wöchentliche
+// Wirkungsmessung, die dieselbe Skala nutzt.
+// v0.33 entschied sich bewusst für eine minimalistische Strichzeichnung statt Emoji (Begründung
+// damals: plattformabhängige Emoji-Schrift, Konsistenz mit dem nüchternen UI-Stil aus Kapitel 8).
+// v0.37 kehrt das um — Julians Anliegen: der Check-in soll sich menschlicher/vertrauter anfühlen
+// ("emotionale Vorspeise"), bevor die eigentliche Frage kommt. Echte Emoji sind für die allermeisten
+// Menschen (16–80 Jahre, siehe Kapitel 8) unmittelbarer lesbar als eine abstrakte Strichzeichnung —
+// das wiegt den Rendering-Unterschied zwischen Betriebssystemen für einen Prototyp auf. Zwei bewusste
+// Kompromisse dabei: (1) Emoji sind selbst-farbig statt currentColor-fähig, tragen die
+// Auswahl-Hervorhebung (".opt-btn.selected") deshalb nicht mehr selbst mit — das übernehmen weiterhin
+// Rahmen/Hintergrund der Karte, wie es die anderen Options-Buttons (Tagesabschluss, Qualia-Feedback)
+// schon immer taten. (2) Emoji-Glyphen selbst tragen bereits eine eigene Bedeutung/Ausdruck, bleiben
+// hier aber strikt an die bestehende 10/30/50/70/90-Skala gebunden und ersetzen nie den Text daneben
+// — kein neuer Interpretationsspielraum, nur ein wärmeres visuelles Kleid für dieselbe Skala.
+const SCALE_EMOJI = { 10: "😞", 30: "🙁", 50: "😐", 70: "🙂", 90: "😄" };
+function scaleIcon(value){
+  return `<span class="opt-icon" aria-hidden="true">${SCALE_EMOJI[value]}</span>`;
+}
+const FACE_ICONS = { 10: scaleIcon(10), 30: scaleIcon(30), 50: scaleIcon(50), 70: scaleIcon(70), 90: scaleIcon(90) };
+
+// ---- 1c. Eingangs-Stimmung (seit v0.38, Auswahl-Wirkung seit v0.40) ----------------------------
+// Diskussion vor v0.38: Julian wollte ursprünglich, dass ein Emoji vorab WELCHE Ebene/Intervention
+// die App vorschlägt mitbestimmt ("Schubladen öffnen") — das wurde damals bewusst NICHT umgesetzt,
+// weil es entweder Kapitel 4 (Anti-Persona-Prinzip) oder die Gatekeeper-Sicherheitslogik verletzt
+// hätte. Einigung damals: nur Rahmung, nie Auswahl. v0.39 machte das Widget dauerhaft/jederzeit
+// änderbar, an der Rahmung-Grenze selbst änderte das nichts.
+//
+// v0.40 — BEWUSSTE REVISION dieser Grenze, explizit von Julian angefordert (nicht stille Eigen-
+// initiative, siehe Diskussion vor v0.40 in den Projektnotizen): das Emoji bestimmt jetzt direkt die
+// Ebene mit, UND jedes Emoji führt einen eigenen, unabhängigen Skilltree (siehe moodWeights/moodXP
+// weiter unten) — exakt das XP-System, das der Skilltree-Kommentar aus v0.15 ausdrücklich als
+// "hätte die Gamification-Grenze verletzt" ausgeschlossen hatte. Zwei frühere, ausführlich begründete
+// Entscheidungen wurden hier also bewusst zurückgenommen, nicht vergessen. Was NICHT zurückgenommen
+// wurde, weil Julian es explizit bestätigt hat: die Gatekeeper-Sicherheitslogik bleibt ein absoluter
+// Boden. Genaue Mechanik (siehe advanceCheckin()): das gewählte Emoji liefert nur einen KANDIDATEN
+// für die Ebene; applyGatekeepers() prüft diesen Kandidaten genauso wie früher den rechnerischen
+// Engpass — meldet der heutige Check-in z. B. Ebene 0 kritisch niedrig, wird ein Emoji, das eigentlich
+// Ebene 3/4/5 vorschlagen würde, trotzdem korrekt auf das Fundament umgelenkt (gatekeeperReason wird
+// dabei ganz normal gesetzt, die bestehende Erklärungs-Anzeige greift automatisch). Nur wenn der
+// heutige Zustand das zulässt, gewinnt das Emoji. `tier` ordnet jedes Emoji genau EINER Ebene zu
+// (Vorschlag, mit Julian abgestimmt); bewusst keine Zuordnung zu Ebene 0/3 unter den bestehenden 6
+// Stimmungen — beide bleiben dadurch weiterhin ausschließlich über den rechnerischen Engpass bzw.
+// eine Gatekeeper-Umlenkung erreichbar, nie direkt per Emoji.
+//
+// `framing` bleibt unverändert bestehen (auch wenn das Emoji die Auswahl übersteuert wurde) — bewusst
+// eine kleine, feste Liste, siehe ursprüngliche v0.38-Begründung.
+//
+// v0.42 — Ausbau auf 8 Stimmungen, von Julian direkt angefragt ("emojis und hashtags ausbauen").
+// Zwei neue Emojis ergänzt ("lonely", "driven"), NICHT einfach beliebig hinzugefügt: die 6
+// bestehenden waren ungleich verteilt (Ebene 1 und 5 hatten je 2, Ebene 2 und 4 nur je 1) — die
+// beiden neuen gleichen genau das aus (jetzt 2/2/2/2 über Ebene 1, 2, 4, 5). Julian hat dabei
+// ausdrücklich bestätigt, dass die oben begründete Grenze bestehen bleibt: Ebene 0 und 3 bekommen
+// weiterhin KEIN eigenes Emoji, bleiben also weiterhin ausschließlich über den rechnerischen
+// Engpass bzw. eine Gatekeeper-Umlenkung erreichbar — bewusst keine Wiederholung der v0.40-Revision.
+//
+// Selbstkritischer Review direkt nach der v0.42-Auslieferung, von Julian bestätigt: 🥺 wird
+// umgangssprachlich eher als "Bettel-Blick"/Sehnsucht gelesen statt eindeutig als Einsamkeit, und
+// 💪 (Ebene 4, Kompetenz) liest sich zu stark nach körperlicher Kraft/Fitness — kollidiert optisch
+// mit Ebene 0 (Biologie), die bewusst kein eigenes Emoji hat (siehe oben). Ersetzt durch 😔
+// ("Einsam") und 🎯 ("Entschlossen", fokussiert statt körperlich-kraftvoll) — reiner Emoji-/Label-
+// Tausch, `key`/`tier`/`framing` unverändert, keine Auswirkung auf moodWeights/moodXP (die hängen
+// am `key`, nicht am Emoji-Zeichen).
+//
+// v0.43 — Ausbau auf 15 Stimmungen + `cluster`-Feld für schwaches Cross-Learning (siehe
+// moodCluster()/finishFeedback() weiter unten). Julians eigener Gedanke dazu: "wenn ich traurig bin
+// hilft mir das und das, aber wenn ich glücklich bin kann ich lernen, diese Energie produktiv zu
+// nutzen" (Beispiel: Krafttraining hilft sowohl bei Wut als auch bei guter Laune — beides
+// hochenergetische Zustände, auch wenn die Valenz unterschiedlich ist). Das `cluster`-Feld gruppiert
+// deshalb NICHT nach positiv/negativ, sondern nach Aktivierungsgrad (angelehnt an Russells
+// Circumplex-Modell der Emotionen: Valenz × Arousal) — "energetic" (hochaktiviert, ob positiv oder
+// negativ) vs. "calm" (niedrigaktiviert/gedämpft, ob positiv oder negativ). Julian hat die
+// Cross-Learning-Entscheidung ausdrücklich an mich delegiert ("das musst du entscheiden") — diese
+// Cluster-Logik ist meine Umsetzung seiner Beispiel-Logik, kein zusätzlicher Rückfrage-Zyklus nötig.
+//
+// Julian schlug 12 Kandidaten-Emojis vor (😋🤓😎🥸🥳😡😳😈👿🫣🫠🫩) und bat ausdrücklich, den Ansatz
+// selbst auf semantische Redundanz zu prüfen, statt alle blind zu übernehmen. Ergebnis dieser Prüfung
+// (vollständige Begründung in den Projektnotizen, Abschnitt v0.43): FÜNF wurden ausgeschlossen — 😡
+// (exaktes Duplikat von "angry"), 👿 (Redundanz zu 😈 UND zu 😡), 🥸 (zu vage/kostümhaft für eine
+// klare Gefühlslage), 😈 (Ton-Risiko, kollidiert mit "nicht ins Lächerliche ziehen"), 🫩 (liest sich
+// als Erschöpfung/Schlafmangel — kollidiert mit der bewusst emoji-freien Ebene 0). Die verbleibenden
+// SIEBEN sind neu ergänzt (😋🤓😎🥳😳🫣🫠) — macht 15 statt der vorgeschlagenen 16: eine bewusst
+// unvollständige Zahl, weil kein achter Kandidat sowohl redundanzfrei als auch sauber einer Ebene
+// zuordenbar war. Ebene-0/3-Grenze weiterhin unverändert (siehe oben).
+const MOOD_OPTIONS = [
+  { key:"down",   emoji:"🙁", label:"Niedergeschlagen", tier:1, cluster:"calm",
+    framing:"Muss heute nicht viel sein. Hier ist ein kleiner, machbarer Schritt für dich:" },
+  { key:"calm",   emoji:"😌", label:"Ausgeglichen", tier:5, cluster:"calm",
+    framing:"Du wirkst heute ruhig und gesammelt — dann lass uns das nutzen:" },
+  { key:"upbeat", emoji:"😆", label:"Gut aufgelegt", tier:4, cluster:"energetic",
+    framing:"Du klingst heute aufgelegt — pack die Energie in diesen Schritt:" },
+  { key:"warm",   emoji:"🥰", label:"Warmherzig", tier:2, cluster:"calm",
+    framing:"Schön, dass du dir heute Zeit für dich nimmst. Hier ein kleiner Schritt:" },
+  { key:"angry",  emoji:"😡", label:"Frustriert", tier:1, cluster:"energetic",
+    framing:"Erstmal durchatmen. Hier ist ein kleiner, machbarer Schritt:" },
+  { key:"kind",   emoji:"😇", label:"Gutmütig", tier:5, cluster:"calm",
+    framing:"Du fühlst dich heute großzügig gestimmt — hier ein kleiner Schritt für dich:" },
+  { key:"lonely", emoji:"😔", label:"Einsam", tier:2, cluster:"calm",
+    framing:"Fühlt sich heute vielleicht etwas allein an — hier ein kleiner Schritt, der Verbindung schafft:" },
+  { key:"driven", emoji:"🎯", label:"Entschlossen", tier:4, cluster:"energetic",
+    framing:"Du wirkst heute entschlossen — nutz das für etwas, das dich weiterbringt:" },
+  { key:"festive", emoji:"🥳", label:"Ausgelassen", tier:2, cluster:"energetic",
+    framing:"Du bist heute in Feierlaune — ein guter Moment, das mit anderen zu teilen:" },
+  { key:"flustered", emoji:"😳", label:"Verlegen", tier:2, cluster:"energetic",
+    framing:"Fühlt sich heute vielleicht etwas unsicher nach etwas Zwischenmenschlichem an — hier ein kleiner Schritt zurück zur Verbindung:" },
+  { key:"anxious", emoji:"🫣", label:"Ängstlich", tier:1, cluster:"energetic",
+    framing:"Es fühlt sich heute vielleicht mulmig an. Erstmal durchatmen — hier ein kleiner Schritt:" },
+  { key:"overwhelmed", emoji:"🫠", label:"Überfordert", tier:1, cluster:"calm",
+    framing:"Klingt nach viel gerade. Lass uns das runterbrechen — ein kleiner, machbarer Schritt:" },
+  { key:"curious", emoji:"🤓", label:"Wissbegierig", tier:4, cluster:"energetic",
+    framing:"Du wirkst heute neugierig und lernbereit — ein guter Moment für einen Schritt, der dein Können wachsen lässt:" },
+  { key:"confident", emoji:"😎", label:"Selbstbewusst", tier:5, cluster:"calm",
+    framing:"Du wirkst heute selbstsicher und gelassen — ein guter Moment, um bei dir zu bleiben:" },
+  { key:"savoring", emoji:"😋", label:"Genießerisch", tier:5, cluster:"calm",
+    framing:"Du wirkst heute genussvoll gestimmt — nimm dir bewusst einen Moment dafür:" }
+];
+
 // Kurzer "Warum" Satz pro Tier (Meta-Prinzipien im Hintergrund, siehe Kapitel VI der Projekt-Doku)
 const TIER_WHY = {
   0: "Der Körper ist nicht Objekt, sondern Träger des Bewusstseins (Merleau-Ponty). Diese Handlung pflegt das primäre Medium, nicht nur eine Maschine.",
@@ -671,7 +1134,7 @@ const TIER_WHY = {
   5: "Unstrukturierte Zeit ist neurobiologisch notwendig für das Default Mode Network (Scholé) — Sinn entsteht nicht im Tun, sondern im Innehalten."
 };
 
-// ---- 2. Interventions-Inventar (30, tier-getaggt, alle final bestätigt) ---------
+// ---- 2. Interventions-Inventar (56, tier-getaggt, alle final bestätigt) ---------
 // #01–#20: Herkunft/Status siehe frühere Versionshinweise im Projekt (`claude/humaneed_prototype_notes.md`).
 // #21–#30 kamen in v0.9 dazu (Julians Wunsch nach "umfangreicherem Inventar", damit sich Vorschläge
 // seltener wiederholen), sinngemäß aus dem alten HUMANEED_v8-Manuskript bzw. dem Epigenetik-Kapitel
@@ -688,152 +1151,152 @@ const TIER_WHY = {
 // "weekend" = leichte Präferenz am Wochenende. Nichts wird deshalb ausgeblendet (Wu-Wei-Prinzip),
 // nur bei Gleichstand bevorzugt vorgeschlagen.
 const INTERVENTIONS = [
-  { id:"01", tier:1, title:"Der Schwellen-Puffer", action:"5 Minuten vor der Haustür innehalten, ausatmen, die Arbeit gedanklich schließen.", proposal:false, bestTime:"evening",
+  { id:"01", tier:1, title:"Der Schwellen-Puffer", action:"5 Minuten vor der Haustür innehalten, ausatmen, die Arbeit gedanklich schließen.", proposal:false, bestTime:"evening", tags:["Übergang", "Feierabend", "Atmen"],
     steps:["Vor der Tür stehen bleiben, bevor du reingehst.", "Drei Mal bewusst tief ausatmen.", "Dir kurz sagen: 'Das war die Arbeit, jetzt kommt der Rest.'"],
     variation:"Keine eigene Haustür gerade? Geht auch im Auto oder auf der letzten Treppenstufe.",
     deepen:{ action:"Diesmal zusätzlich einmal um den Block gehen, bevor du reingehst — als längerer Übergang.",
       steps:["Wie gewohnt vor der Tür stehen bleiben.", "Einmal ums Haus oder den Block gehen, bevor du reingehst.", "Erst danach wirklich 'ankommen' und reingehen."] } },
-  { id:"02", tier:1, title:"Die ersten 30 Minuten", action:"Keine Bildschirme in den ersten 30 Minuten des Tages.", proposal:false, bestTime:"morning",
+  { id:"02", tier:1, title:"Die ersten 30 Minuten", action:"Keine Bildschirme in den ersten 30 Minuten des Tages.", proposal:false, bestTime:"morning", tags:["Morgenroutine", "Bildschirmfrei"],
     steps:["Handy bewusst außer Reichweite lassen beim Aufwachen.", "Erst anziehen, trinken oder rausschauen, bevor der erste Blick aufs Display kommt.", "Nach 30 Minuten ganz normal weitermachen."],
     variation:"Muss der Wecker aufs Handy? Auch 'nur checken, dann sofort weglegen' ist schon ein Kompromiss.",
     deepen:{ action:"Diesmal 60 statt 30 Minuten ganz ohne Bildschirm.",
       steps:["Handy wie gewohnt außer Reichweite lassen.", "Die ersten 60 statt 30 Minuten ganz ohne Display verbringen.", "Danach bewusst und nicht hastig einsteigen."] } },
-  { id:"03", tier:3, title:"Der Gedanken-Parkplatz", action:"Schreib offene To-Dos kurz auf, um dein Arbeitsgedächtnis zu entlasten.", proposal:false, bestTime:"evening",
+  { id:"03", tier:3, title:"Der Gedanken-Parkplatz", action:"Schreib offene To-Dos kurz auf, um dein Arbeitsgedächtnis zu entlasten.", proposal:false, bestTime:"evening", tags:["KopfFrei", "Aufschreiben", "Struktur"],
     steps:["Zettel oder Notiz-App aufmachen.", "Alles aufschreiben, was gerade im Kopf 'herumschwirrt' — ungefiltert.", "Liste einfach liegen lassen, nicht sofort abarbeiten."],
     variation:"Kein Stift zur Hand? Auch eine Sprachnotiz an dich selbst funktioniert.",
     deepen:{ action:"Diesmal bei jedem Punkt zusätzlich kurz notieren, wann du dich darum kümmerst — nicht ausführen, nur einplanen.",
       steps:["Wie gewohnt alles aufschreiben, was im Kopf herumschwirrt.", "Bei jedem Punkt kurz einen groben Zeitpunkt notieren (heute, diese Woche, später).", "Die Liste danach wieder liegen lassen — nichts sofort abarbeiten."] } },
-  { id:"04", tier:3, title:"Die 1-Tab-Regel", action:"Nur einen Tab für die nächsten 45 Minuten geöffnet lassen.", proposal:false, bestTime:"any",
+  { id:"04", tier:3, title:"Die 1-Tab-Regel", action:"Nur einen Tab für die nächsten 45 Minuten geöffnet lassen.", proposal:false, bestTime:"any", tags:["Fokus", "Ordnung"],
     steps:["Alle Tabs bis auf einen schließen.", "Timer auf 45 Minuten stellen.", "Neue Tabs erst nach Ablauf des Timers öffnen."],
     variation:"Brauchst du wirklich zwei Tabs für die Aufgabe? Dann die Ausnahme bewusst erlauben, aber alles andere zu.",
     deepen:{ action:"Diesmal die 1-Tab-Regel für den ganzen restlichen Vormittag statt nur 45 Minuten.",
       steps:["Alle Tabs bis auf einen schließen — wie gewohnt.", "Diesmal bis zur Mittagspause dabei bleiben.", "Neue Tabs bewusst erst danach öffnen."] } },
-  { id:"05", tier:5, title:"Das leise Wochenende", action:"Plane einen halben Tag bewusst frei — nichts vornehmen.", proposal:false, bestTime:"weekend",
+  { id:"05", tier:5, title:"Das leise Wochenende", action:"Plane einen halben Tag bewusst frei — nichts vornehmen.", proposal:false, bestTime:"weekend", tags:["Leere", "Erholung", "DMN"],
     steps:["Einen halben Tag im Kalender bewusst leer lassen.", "Keine Verabredungen, keine Aufgabenliste für diese Zeit.", "Wenn Langeweile kommt: sie zulassen statt sie sofort zu füllen."],
     variation:"Ein ganzer halber Tag ist zu viel? Auch 2 Stunden bewusst frei sind ein Anfang.",
     deepen:{ action:"Diesmal ein ganzer Tag bewusst frei statt nur ein halber.",
       steps:["Einen ganzen Tag im Kalender bewusst leer lassen.", "Auch spontane Anfragen für diesen Tag freundlich absagen.", "Den Tag ohne festen Plan auf dich zukommen lassen."] } },
-  { id:"06", tier:0, title:"Reduzierte Reibung", action:"Kleidung für morgen bereitlegen, Frühstück standardisieren.", proposal:false, bestTime:"evening",
+  { id:"06", tier:0, title:"Reduzierte Reibung", action:"Kleidung für morgen bereitlegen, Frühstück standardisieren.", proposal:false, bestTime:"evening", tags:["Vorbereitung", "Routine"],
     steps:["Kleidung für morgen schon heute Abend bereitlegen.", "Ein Frühstück überlegen, das du diese Woche einfach wiederholen kannst.", "Kaffee-/Teemaschine startklar für morgen machen."],
     variation:"Wenig Zeit? Reicht auch nur ein Teil, z. B. nur die Kleidung.",
     deepen:{ action:"Diesmal für die ganze Woche statt nur für morgen vorbereiten.",
       steps:["Kleidung für mehrere Tage im Voraus bereitlegen.", "Ein Frühstück wählen, das die ganze Woche funktioniert.", "Einmal einkaufen, was für die Woche fehlt."] } },
-  { id:"07", tier:1, title:"Der physiologische Reset", action:"Kaltes Wasser über die Handgelenke laufen lassen, langsam ausatmen.", proposal:false, bestTime:"any",
+  { id:"07", tier:1, title:"Der physiologische Reset", action:"Kaltes Wasser über die Handgelenke laufen lassen, langsam ausatmen.", proposal:false, bestTime:"any", tags:["Reset", "Beruhigung"],
     steps:["Kaltes Wasser aufdrehen.", "Handgelenke 20–30 Sekunden darunterhalten.", "Dabei langsam und bewusst ausatmen."],
     variation:"Kein Wasserhahn in der Nähe? Ein kaltes Getränk oder offenes Fenster tut es notfalls auch.",
     deepen:{ action:"Diesmal das kalte Wasser über die Unterarme bis zum Ellbogen laufen lassen, für eine Minute.",
       steps:["Kaltes Wasser aufdrehen.", "Unterarme bis zum Ellbogen 60 Sekunden darunterhalten.", "Dabei bewusst langsamer aus- als einatmen."] } },
-  { id:"08", tier:3, title:"Der Graustufen-Modus", action:"Smartphone-Display für die nächste Zeit auf Graustufen stellen.", proposal:false, bestTime:"any",
+  { id:"08", tier:3, title:"Der Graustufen-Modus", action:"Smartphone-Display für die nächste Zeit auf Graustufen stellen.", proposal:false, bestTime:"any", tags:["Reizreduktion", "Fokus"],
     steps:["Bildschirmzeit-Einstellungen öffnen.", "Graustufen-Filter aktivieren.", "Für den Rest des Zyklus so lassen."],
     variation:"Keine Lust auf dauerhaft? Auch nur für die nächste Stunde reicht als Experiment.",
     deepen:{ action:"Diesmal den Graustufen-Modus für den ganzen Tag anlassen statt nur für diesen Zyklus.",
       steps:["Graustufen-Filter wie gewohnt aktivieren.", "Diesmal bewusst bis zum Abend so lassen.", "Am Abend kurz merken, ob sich etwas verändert hat."] } },
-  { id:"09", tier:0, title:"Low-Light-Abend", action:"90 Minuten vor dem Schlafen helles Licht dimmen.", proposal:false, bestTime:"evening",
+  { id:"09", tier:0, title:"Low-Light-Abend", action:"90 Minuten vor dem Schlafen helles Licht dimmen.", proposal:false, bestTime:"evening", tags:["Schlafvorbereitung", "Licht"],
     steps:["Deckenlicht aus, stattdessen eine kleine Lampe.", "Bildschirm-Helligkeit runterdrehen oder Night-Modus an.", "Falls möglich: die letzte Stunde ganz ohne Screen."],
     variation:"Kein Dimmer da? Auch eine einzelne warme Lampe statt Deckenlicht reicht.",
     deepen:{ action:"Diesmal schon 2 Stunden vorher dimmen, mit einer bildschirmfreien Aktivität zum Ausklang.",
       steps:["Schon 2 Stunden vor dem Schlafen das helle Licht dimmen.", "Eine bildschirmfreie Aktivität für die letzte Stunde wählen (Lesen, Dehnen, Gespräch).", "Das Ritual bewusst bis zum Schlafengehen durchhalten."] } },
-  { id:"10", tier:0, title:"Die +1-Regel", action:"Beim Verlassen eines Raums einen Gegenstand mitnehmen, der dort nicht hingehört.", proposal:false, bestTime:"any",
+  { id:"10", tier:0, title:"Die +1-Regel", action:"Beim Verlassen eines Raums einen Gegenstand mitnehmen, der dort nicht hingehört.", proposal:false, bestTime:"any", tags:["Ordnung", "Kleinschritt"],
     steps:["Kurz umschauen, bevor du den Raum verlässt.", "Genau einen Gegenstand mitnehmen, der eigentlich woanders hingehört.", "Ihn direkt an seinen Platz bringen."],
     variation:"Kein Raumwechsel gerade? Nimm dir einen Gegenstand auf deinem Schreibtisch vor.",
     deepen:{ action:"Diesmal drei Gegenstände statt nur einen mitnehmen.",
       steps:["Kurz umschauen, bevor du den Raum verlässt.", "Diesmal bis zu drei Gegenstände mitnehmen, die woanders hingehören.", "Alle direkt an ihren Platz bringen."] } },
-  { id:"11", tier:1, title:"Der weite Blick", action:"2 Minuten in die Ferne schauen, den Blick weit werden lassen.", proposal:false, bestTime:"any",
+  { id:"11", tier:1, title:"Der weite Blick", action:"2 Minuten in die Ferne schauen, den Blick weit werden lassen.", proposal:false, bestTime:"any", tags:["Entspannung", "Augen"],
     steps:["Ans Fenster stellen oder nach draußen gehen.", "Auf den am weitesten entfernten Punkt schauen, den du siehst.", "2 Minuten lang, Blick weich und unfokussiert."],
     variation:"Kein Fenster mit Weitblick? Auch der höchste sichtbare Punkt im Raum hilft.",
     deepen:{ action:"Diesmal 5 statt 2 Minuten, wenn möglich draußen statt am Fenster.",
       steps:["Wenn möglich nach draußen gehen statt nur ans Fenster.", "Auf einen weit entfernten Punkt schauen, Blick weich lassen.", "5 statt 2 Minuten dabei bleiben."] } },
-  { id:"12", tier:1, title:"Der physische Anker", action:"Aufrecht sitzen, Füße spüren, dreimal bewusst in den Bauch atmen.", proposal:false, bestTime:"any",
+  { id:"12", tier:1, title:"Der physische Anker", action:"Aufrecht sitzen, Füße spüren, dreimal bewusst in den Bauch atmen.", proposal:false, bestTime:"any", tags:["Erdung", "Atmen"],
     steps:["Beide Füße flach auf den Boden stellen.", "Rücken aufrichten, Schultern lockern.", "Dreimal bewusst in den Bauch statt in die Brust atmen."],
     variation:"Kein Sitzplatz gerade? Geht auch im Stehen, Füße bewusst spüren reicht als Anker.",
     deepen:{ action:"Die gleiche Übung, diesmal für 2 Minuten mit einem kurzen Körper-Scan von den Füßen bis zum Kopf.",
       steps:["Beide Füße flach auf den Boden stellen, Rücken aufrichten.", "Langsam mit der Aufmerksamkeit von den Füßen bis zum Kopf wandern.", "Bei jeder Körperregion kurz bewusst entspannen."] } },
-  { id:"13", tier:4, title:"Die 24-Stunden-Regel", action:"Auf eine Anfrage antworten: „Ich prüfe das und melde mich morgen.“", proposal:false, bestTime:"any",
+  { id:"13", tier:4, title:"Die 24-Stunden-Regel", action:"Auf eine Anfrage antworten: „Ich prüfe das und melde mich morgen.“", proposal:false, bestTime:"any", tags:["Grenzen", "Bedenkzeit"],
     steps:["Anfrage erhalten — nicht sofort zusagen oder absagen.", "Die Standard-Antwort nutzen: 'Ich prüfe das und melde mich morgen.'", "Am nächsten Tag in Ruhe entscheiden."],
     variation:"Muss es schneller gehen? Auch 'Ich melde mich in ein paar Stunden' ist schon ein Gewinn gegenüber sofort zusagen.",
     deepen:{ action:"Diesmal die Regel bei einer Anfrage anwenden, die dir eigentlich schwerfällt zu verschieben — nicht nur bei einer einfachen.",
       steps:["Bewusst eine Anfrage wählen, bei der Verschieben dir schwerfällt.", "Trotzdem die Standard-Antwort nutzen: 'Ich prüfe das und melde mich morgen.'", "Die 24 Stunden wirklich abwarten, bevor du entscheidest."] } },
-  { id:"14", tier:4, title:"Der erste Sieg", action:"Erledige die wichtigste Aufgabe als Erstes.", proposal:false, bestTime:"morning",
+  { id:"14", tier:4, title:"Der erste Sieg", action:"Erledige die wichtigste Aufgabe als Erstes.", proposal:false, bestTime:"morning", tags:["Priorität", "Fokus"],
     steps:["Kurz überlegen: was ist heute die eine wichtigste Sache?", "Genau die zuerst angehen, vor E-Mails oder Nebensächlichem.", "Erst danach zum Rest übergehen."],
     variation:"Die wichtigste Aufgabe ist zu groß für 'als Erstes'? Dann nur den ersten konkreten Schritt davon zuerst machen.",
     deepen:{ action:"Diesmal einen festen, ungestörten Zeitblock dafür reservieren, bis die Aufgabe wirklich fertig ist.",
       steps:["Die wichtigste Aufgabe wie gewohnt zuerst wählen.", "Einen festen Zeitblock dafür reservieren, ohne Unterbrechung.", "Erst zum Rest übergehen, wenn die Aufgabe wirklich abgeschlossen ist."] } },
-  { id:"15", tier:1, title:"Der klare Cut", action:"Laptop zuklappen und aus dem Blickfeld räumen — als bewusste Trennlinie.", proposal:false, bestTime:"evening",
+  { id:"15", tier:1, title:"Der klare Cut", action:"Laptop zuklappen und aus dem Blickfeld räumen — als bewusste Trennlinie.", proposal:false, bestTime:"evening", tags:["Trennlinie", "Feierabend"],
     steps:["Laufende Aufgabe kurz notieren, damit sie nicht 'offen' im Kopf bleibt.", "Laptop zuklappen.", "Ihn tatsächlich aus dem Sichtfeld räumen, nicht nur zuklappen."],
     variation:"Laptop muss erreichbar bleiben? Dann wenigstens den Bildschirm abdecken oder umdrehen.",
     deepen:{ action:"Diesmal den Laptop in einen anderen Raum bringen statt nur aus dem Blickfeld.",
       steps:["Laufende Aufgabe kurz notieren.", "Laptop zuklappen.", "Ihn diesmal in einen anderen Raum bringen, nicht nur aus dem Blickfeld."] } },
-  { id:"16", tier:2, title:"Der bewusste Check-in", action:"Schreib einer nahestehenden Person eine unaufgeforderte, konkrete Nachricht — kein Small Talk.", proposal:false, bestTime:"any",
+  { id:"16", tier:2, title:"Der bewusste Check-in", action:"Schreib einer nahestehenden Person eine unaufgeforderte, konkrete Nachricht — kein Small Talk.", proposal:false, bestTime:"any", tags:["VertrautePerson", "Verbindung"],
     steps:["Eine Person auswählen, an die du gerade denkst.", "Etwas Konkretes schreiben, das du an ihr schätzt oder das dir aufgefallen ist.", "Abschicken, ohne lange zu überarbeiten."],
     variation:"Schreiben fällt schwer? Eine Sprachnachricht wirkt oft noch persönlicher.",
     deepen:{ action:"Diesmal statt einer Nachricht direkt anrufen und wirklich fragen, wie es der Person geht.",
       steps:["Die Person anrufen statt zu schreiben.", "Ehrlich fragen, wie es ihr gerade wirklich geht.", "Zuhören, ohne das Gespräch schnell zu beenden."] } },
-  { id:"17", tier:2, title:"Gemeinsame Ko-Regulation", action:"Verbring 5 Minuten mit einer vertrauten Person im selben Raum, ohne Bildschirm.", proposal:false, bestTime:"evening",
+  { id:"17", tier:2, title:"Gemeinsame Ko-Regulation", action:"Verbring 5 Minuten mit einer vertrauten Person im selben Raum, ohne Bildschirm.", proposal:false, bestTime:"evening", tags:["VertrautePerson", "Verbindung", "Ruhe"],
     steps:["Person fragen, ob 5 Minuten Zeit ohne Handy drin sind.", "Beide Handys weglegen.", "Einfach da sein — reden oder auch schweigen ist beides okay."],
     variation:"Niemand gerade greifbar? Ein kurzer Videoanruf statt Textnachricht kommt nah dran.",
     deepen:{ action:"Diesmal eine ganze gemeinsame Mahlzeit ohne Bildschirme statt nur 5 Minuten.",
       steps:["Eine gemeinsame Mahlzeit verabreden.", "Beide Handys für die ganze Zeit weglegen.", "Bewusst im gleichen Tempo essen und reden."] } },
-  { id:"18", tier:4, title:"Die Ein-Wiederholung", action:"Wiederhole heute bewusst eine kleine Handlung, die du schon einmal gut hinbekommen hast — exakt so wie beim ersten Mal.", proposal:false, bestTime:"any",
+  { id:"18", tier:4, title:"Die Ein-Wiederholung", action:"Wiederhole heute bewusst eine kleine Handlung, die du schon einmal gut hinbekommen hast — exakt so wie beim ersten Mal.", proposal:false, bestTime:"any", tags:["Selbstvertrauen", "Wiederholung"],
     steps:["Kurz überlegen: was hat neulich gut geklappt?", "Genau diese Handlung heute noch einmal so ausführen.", "Bewusst wahrnehmen, dass es (wieder) funktioniert."],
     variation:"Erinnerst du dich nicht genau? Reicht auch eine ähnliche, kleinere Version davon.",
     deepen:{ action:"Diesmal einen größeren Erfolg wiederholen, nicht nur eine kleine Handlung.",
       steps:["Überlegen: was hat kürzlich wirklich gut geklappt, auch wenn es größer war?", "Die zentralen Schritte davon heute bewusst wiederholen.", "Wahrnehmen, welcher Teil diesmal leichter fiel als beim ersten Mal."] } },
-  { id:"19", tier:5, title:"Der Sinn-Satz", action:"Schreib in einem Satz auf, warum das, was du heute tust, für dich zählt — ohne es zu bewerten.", proposal:false, bestTime:"any",
+  { id:"19", tier:5, title:"Der Sinn-Satz", action:"Schreib in einem Satz auf, warum das, was du heute tust, für dich zählt — ohne es zu bewerten.", proposal:false, bestTime:"any", tags:["Bedeutung", "Reflexion"],
     steps:["Kurz innehalten und an das denken, was heute ansteht oder anstand.", "Einen einzigen Satz aufschreiben, warum es zählt — kein Urteil.", "Den Satz einfach stehen lassen."],
     variation:"Fällt dir kein Grund ein? Auch 'ich weiß es gerade nicht, und das ist okay' ist ein ehrlicher Satz.",
     deepen:{ action:"Diesmal statt einem Satz einen kurzen Absatz — mit einem konkreten Beispiel.",
       steps:["Wie gewohnt überlegen, was heute zählt.", "Diesmal einen kurzen Absatz statt nur einen Satz schreiben.", "Ein konkretes Beispiel aus dem Tag mit einbauen."] } },
-  { id:"20", tier:2, title:"Aktiv zuhören", action:"Stell einer Person heute eine echte Nachfrage und hör zu, ohne gleich zu antworten oder zu bewerten.", proposal:false, bestTime:"any",
+  { id:"20", tier:2, title:"Aktiv zuhören", action:"Stell einer Person heute eine echte Nachfrage und hör zu, ohne gleich zu antworten oder zu bewerten.", proposal:false, bestTime:"any", tags:["Zuhören", "Verbindung"],
     steps:["Eine Frage stellen, die mehr als eine Ja/Nein-Antwort erlaubt.", "Zuhören, ohne schon die eigene Antwort vorzubereiten.", "Erst nachfragen, bevor du selbst etwas dazu sagst."],
     variation:"Face-to-face gerade nicht möglich? Auch am Telefon funktioniert echtes Zuhören.",
     deepen:{ action:"Diesmal das Gehörte am Ende in eigenen Worten zurückspiegeln.",
       steps:["Wie gewohnt eine echte Frage stellen und zuhören.", "Am Ende in eigenen Worten zusammenfassen, was du gehört hast.", "Nachfragen, ob du es richtig verstanden hast."] } },
-  { id:"21", tier:0, title:"Morgenlicht", action:"Geh für 5–10 Minuten nach draußen, am besten kurz nach dem Aufstehen.", proposal:false, bestTime:"morning",
+  { id:"21", tier:0, title:"Morgenlicht", action:"Geh für 5–10 Minuten nach draußen, am besten kurz nach dem Aufstehen.", proposal:false, bestTime:"morning", tags:["Morgenroutine", "Licht"],
     steps:["Direkt nach dem Aufstehen raus, auch nur auf den Balkon oder vor die Tür.", "Sonnenbrille wenn möglich weglassen.", "Kein Handy dabei — nur das Licht."],
     variation:"Regen oder kalt? Auch ans offene Fenster stellen hilft schon etwas.",
     deepen:{ action:"Verlängere die Zeit draußen auf 15–20 Minuten und verbinde sie mit einem kurzen Spaziergang.",
       steps:["Wie gewohnt direkt nach dem Aufstehen raus.", "Diesmal ein kleines Stück gehen statt nur stehen zu bleiben.", "15–20 Minuten insgesamt draußen bleiben, auch bei bewölktem Himmel."] } },
-  { id:"22", tier:0, title:"4-7-8-Atmung", action:"4 Sekunden einatmen, 7 Sekunden halten, 8 Sekunden ausatmen — vier Runden.", proposal:false, bestTime:"any",
+  { id:"22", tier:0, title:"4-7-8-Atmung", action:"4 Sekunden einatmen, 7 Sekunden halten, 8 Sekunden ausatmen — vier Runden.", proposal:false, bestTime:"any", tags:["Atmen", "Beruhigung"],
     steps:["Durch die Nase 4 Sekunden einatmen.", "7 Sekunden die Luft halten.", "8 Sekunden langsam durch den Mund ausatmen — vier Runden wiederholen."],
     variation:"Zählen fällt schwer? Die einfachere Box-Atmung (4 Sekunden ein, 4 halten, 4 aus, 4 halten) ist eine gute Alternative.",
     deepen:{ action:"Die gleiche 4-7-8-Atmung, diesmal über 8–10 Runden statt 4.",
       steps:["Durch die Nase 4 Sekunden einatmen.", "7 Sekunden die Luft halten.", "8 Sekunden langsam ausatmen — diesmal 8–10 Runden statt 4."] } },
-  { id:"23", tier:2, title:"Um Hilfe bitten", action:"Bitte heute bewusst eine Person um eine kleine Hilfe — auch wenn du es allein könntest.", proposal:false, bestTime:"any",
+  { id:"23", tier:2, title:"Um Hilfe bitten", action:"Bitte heute bewusst eine Person um eine kleine Hilfe — auch wenn du es allein könntest.", proposal:false, bestTime:"any", tags:["Verletzlichkeit", "VertrautePerson"],
     steps:["Etwas Kleines finden, wofür du Hilfe gebrauchen könntest.", "Konkret fragen statt anzudeuten.", "Die Hilfe annehmen, ohne sie sofort zu relativieren."],
     variation:"Fällt schwer, jemanden persönlich zu fragen? Ein kurzer Anruf oder eine Nachricht reicht auch.",
     deepen:{ action:"Diesmal um etwas bitten, das dir wirklich schwerfällt zu erbitten — nicht nur eine Kleinigkeit.",
       steps:["Etwas finden, bei dem Hilfe zu erbitten dir eigentlich unangenehm ist.", "Trotzdem konkret danach fragen.", "Die Hilfe annehmen, ohne sie kleinzureden."] } },
-  { id:"24", tier:2, title:"Gefühle teilen", action:"Erzähl einer Person ehrlich, wie es dir gerade wirklich geht — ohne es kleinzureden.", proposal:false, bestTime:"any",
+  { id:"24", tier:2, title:"Gefühle teilen", action:"Erzähl einer Person ehrlich, wie es dir gerade wirklich geht — ohne es kleinzureden.", proposal:false, bestTime:"any", tags:["Ehrlichkeit", "Verbindung"],
     steps:["Eine Person wählen, der du vertraust.", "Eine Aussage machen statt einer Standard-Floskel.", "Bei der Aussage bleiben, auch wenn der Impuls kommt, sie abzuschwächen."],
     variation:"Face-to-face zu viel? Auch schriftlich ehrlich sein wirkt.",
     deepen:{ action:"Diesmal etwas teilen, das dir wirklich schwerfällt auszusprechen.",
       steps:["Eine Person wählen, der du vertraust.", "Etwas teilen, das tiefer geht als beim letzten Mal.", "Bei der Aussage bleiben, auch wenn es unangenehm wird."] } },
-  { id:"25", tier:3, title:"Der Gedanken-Spaziergang", action:"10 Minuten ohne Handy spazieren gehen und die Gedanken einfach laufen lassen.", proposal:false, bestTime:"any",
+  { id:"25", tier:3, title:"Der Gedanken-Spaziergang", action:"10 Minuten ohne Handy spazieren gehen und die Gedanken einfach laufen lassen.", proposal:false, bestTime:"any", tags:["Bewegung", "KopfFrei"],
     steps:["Handy zuhause oder in der Tasche lassen — wirklich außer Reichweite.", "Ohne festes Ziel losgehen.", "Gedanken kommen und gehen lassen, nichts festhalten müssen."],
     variation:"Kein Rausgehen möglich? Auch ein paar Minuten am Fenster stehen und bewusst nichts tun hilft.",
     deepen:{ action:"Diesmal 20 statt 10 Minuten.",
       steps:["Handy wie gewohnt zuhause lassen.", "Diesmal 20 statt 10 Minuten unterwegs bleiben.", "Ohne Ziel gehen, Gedanken einfach laufen lassen."] } },
-  { id:"26", tier:3, title:"Freewriting", action:"5 Minuten ohne abzusetzen aufschreiben, was gerade im Kopf ist — ohne Filter, ohne Korrektur.", proposal:false, bestTime:"any",
+  { id:"26", tier:3, title:"Freewriting", action:"5 Minuten ohne abzusetzen aufschreiben, was gerade im Kopf ist — ohne Filter, ohne Korrektur.", proposal:false, bestTime:"any", tags:["Aufschreiben", "Ausdruck"],
     steps:["Timer auf 5 Minuten stellen.", "Stift oder Tastatur nicht absetzen, egal was rauskommt.", "Nichts durchstreichen oder korrigieren, bis der Timer klingelt."],
     variation:"Schreiben blockiert? Auch lautes Vor-sich-hin-Reden funktioniert ähnlich.",
     deepen:{ action:"Diesmal 15 statt 5 Minuten am Stück schreiben.",
       steps:["Timer auf 15 statt 5 Minuten stellen.", "Ohne abzusetzen weiterschreiben, auch wenn nichts Neues kommt.", "Erst am Ende kurz durchlesen, ohne zu korrigieren."] } },
-  { id:"27", tier:4, title:"Gezieltes Üben", action:"Übe 10 Minuten gezielt genau den Teil einer Fähigkeit, der dir am schwersten fällt.", proposal:false, bestTime:"any",
+  { id:"27", tier:4, title:"Gezieltes Üben", action:"Übe 10 Minuten gezielt genau den Teil einer Fähigkeit, der dir am schwersten fällt.", proposal:false, bestTime:"any", tags:["Übung", "Wachstum"],
     steps:["Einen Teilbereich identifizieren, der aktuell am meisten hakt.", "10 Minuten Timer stellen, nur diesen Teil üben.", "Nach dem Timer kurz merken, was schon besser ging."],
     variation:"Kein Timer zur Hand? Auch 'so lange, bis es einmal besser klappt' funktioniert.",
     deepen:{ action:"Diesmal 25 Minuten statt 10, mit einer kurzen Selbst-Rückmeldung danach.",
       steps:["Den schwierigsten Teilbereich wie gewohnt identifizieren.", "25 Minuten Timer stellen, nur diesen Teil üben.", "Danach kurz aufschreiben, was konkret besser wurde."] } },
-  { id:"28", tier:4, title:"Feedback einholen", action:"Frag eine Person konkret nach Rückmeldung zu einer Sache, die du gerade tust.", proposal:false, bestTime:"any",
+  { id:"28", tier:4, title:"Feedback einholen", action:"Frag eine Person konkret nach Rückmeldung zu einer Sache, die du gerade tust.", proposal:false, bestTime:"any", tags:["Rückmeldung", "Wachstum"],
     steps:["Eine Person wählen, die die Sache kennt oder beurteilen kann.", "Eine konkrete Frage stellen statt 'wie findest du das allgemein'.", "Die Antwort annehmen, ohne sie sofort zu verteidigen."],
     variation:"Niemand direkt greifbar? Auch schriftlich um kurzes Feedback bitten funktioniert.",
     deepen:{ action:"Diesmal zusätzlich EINEN Punkt aus dem Feedback direkt umsetzen.",
       steps:["Wie gewohnt konkret nach Rückmeldung fragen.", "Die Antwort annehmen, ohne sie zu verteidigen.", "Einen konkreten Punkt daraus noch heute umsetzen."] } },
-  { id:"29", tier:5, title:"Achtsamkeits-Minute", action:"60 Sekunden bewusst nur atmen und wahrnehmen, ohne etwas zu verändern.", proposal:false, bestTime:"any",
+  { id:"29", tier:5, title:"Achtsamkeits-Minute", action:"60 Sekunden bewusst nur atmen und wahrnehmen, ohne etwas zu verändern.", proposal:false, bestTime:"any", tags:["Achtsamkeit", "Atmen"],
     steps:["Timer auf 60 Sekunden stellen.", "Augen schließen oder einen festen Punkt fixieren.", "Nur wahrnehmen, was ist — ohne etwas zu bewerten oder zu ändern."],
     variation:"60 Sekunden zu lang? Auch 20 bewusste Sekunden sind schon ein Unterschied.",
     deepen:{ action:"Diesmal 5 bis 10 Minuten in Stille sitzen statt nur 60 Sekunden.",
       steps:["Einen ruhigen Sitzplatz suchen, Timer auf 5–10 Minuten stellen.", "Aufmerksamkeit immer wieder sanft zum Atem zurückbringen.", "Am Ende einen Moment bewusst nachspüren, bevor du weitermachst."] } },
-  { id:"30", tier:5, title:"Anderen helfen", action:"Tu heute bewusst etwas Kleines, das nur einer anderen Person nützt, nicht dir.", proposal:false, bestTime:"any",
+  { id:"30", tier:5, title:"Anderen helfen", action:"Tu heute bewusst etwas Kleines, das nur einer anderen Person nützt, nicht dir.", proposal:false, bestTime:"any", tags:["Großzügigkeit", "Sinn"],
     steps:["Eine kleine Gelegenheit suchen, die sich heute ohnehin ergibt.", "Sie ohne Gegenleistung zu erwarten wahrnehmen.", "Bewusst nichts davon erzählen oder posten."],
     variation:"Fällt dir nichts Konkretes ein? Auch eine Tür aufhalten oder jemandem den Vortritt lassen zählt.",
     deepen:{ action:"Diesmal etwas Größeres oder Wiederkehrendes anbieten statt nur eine Kleinigkeit.",
@@ -845,42 +1308,42 @@ const INTERVENTIONS = [
   // in unserem eigenen Ton geschrieben (volle Sätze, dasselbe steps/variation-Muster wie #01–30),
   // nicht wörtlich aus v8 übernommen — v8s Original-Formulierungen sind knapp/stichwortartig
   // ("Stoppe, Drei Atemzüge, ...") und hätten den einheitlichen Ton gebrochen.
-  { id:"31", tier:0, title:"Der Wasser-Check", action:"Kurz die eigene Trinkmenge checken und bei Bedarf ein großes Glas Wasser trinken.", proposal:false, bestTime:"any",
+  { id:"31", tier:0, title:"Der Wasser-Check", action:"Kurz die eigene Trinkmenge checken und bei Bedarf ein großes Glas Wasser trinken.", proposal:false, bestTime:"any", tags:["Hydration", "Körper"],
     steps:["Kurz überlegen, wie viel du heute bisher getrunken hast.", "Ein großes Glas Wasser in Ruhe trinken.", "Das Glas danach sichtbar stehen lassen, als Erinnerung fürs nächste Mal."],
     variation:"Kein Wasser griffbereit? Auch ein anderes ungesüßtes Getränk zählt für den Moment.",
     deepen:{ action:"Diesmal den ganzen Tag über deine Trinkmenge im Blick behalten, nicht nur jetzt ein Glas.",
       steps:["Wie gewohnt jetzt ein großes Glas Wasser trinken.", "Dir für den restlichen Tag 2–3 weitere feste Trinkmomente vornehmen.", "Am Abend kurz merken, ob es mehr war als sonst."] } },
-  { id:"32", tier:0, title:"Die kalte Dusche", action:"Die Dusche ganz am Ende für 30–60 Sekunden auf kalt stellen.", proposal:false, bestTime:"morning",
+  { id:"32", tier:0, title:"Die kalte Dusche", action:"Die Dusche ganz am Ende für 30–60 Sekunden auf kalt stellen.", proposal:false, bestTime:"morning", tags:["Kälte", "Wachheit"],
     steps:["Normal warm duschen wie sonst auch.", "Am Ende das Wasser schrittweise kälter drehen.", "30–60 Sekunden bewusst kalt bleiben, dabei ruhig weiteratmen."],
     variation:"Ganz kalt ist zu viel? Auch nur Arme oder Nacken kurz kalt abduschen wirkt schon. Erkältet oder fiebrig? Dann lieber ganz warm bleiben.",
     deepen:{ action:"Diesmal 90 Sekunden statt 30–60 — sofern es sich gut anfühlt.",
       steps:["Normal warm duschen wie sonst.", "Am Ende schrittweise auf kalt drehen.", "Diesmal bis zu 90 Sekunden kalt bleiben, wenn es sich stimmig anfühlt — sonst einfach bei 60 aufhören."] } },
-  { id:"33", tier:0, title:"Der Kurzschlaf", action:"Einen Wecker auf 20 Minuten stellen und dich hinlegen, auch ohne einzuschlafen.", proposal:false, bestTime:"midday",
+  { id:"33", tier:0, title:"Der Kurzschlaf", action:"Einen Wecker auf 20 Minuten stellen und dich hinlegen, auch ohne einzuschlafen.", proposal:false, bestTime:"midday", tags:["Erholung", "Energie"],
     steps:["Wecker exakt auf 20 Minuten stellen.", "An einem ruhigen, eher dunklen Ort hinlegen.", "Augen schließen und entspannen — es muss kein echter Schlaf sein."],
     variation:"Kein Ort zum Hinlegen da? Auch 20 Minuten mit geschlossenen Augen im Sitzen helfen schon.",
     deepen:{ action:"Diesmal 30 statt 20 Minuten — für eine tiefere Erholungsphase.",
       steps:["Wecker auf 30 Minuten stellen.", "An einem ruhigen, dunklen Ort hinlegen.", "Falls echter Schlaf kommt: das ist okay, der Wecker holt dich zurück."] } },
-  { id:"34", tier:1, title:"Die Gefühls-Benennung", action:"Innehalten und die aktuelle Emotion in einem Wort benennen — laut oder für dich.", proposal:false, bestTime:"any",
+  { id:"34", tier:1, title:"Die Gefühls-Benennung", action:"Innehalten und die aktuelle Emotion in einem Wort benennen — laut oder für dich.", proposal:false, bestTime:"any", tags:["Emotion", "Benennen"],
     steps:["Kurz stoppen und in dich hineinspüren.", "Die Emotion so genau wie möglich benennen, z. B. 'Ich fühle Anspannung'.", "Merken, was sich durch das Benennen allein schon verändert."],
     variation:"Fällt dir kein genaues Wort ein? Auch eine grobe Richtung wie 'eher unangenehm' oder 'eher gut' reicht als Anfang.",
     deepen:{ action:"Diesmal zusätzlich die Intensität einschätzen und merken, wo im Körper sich die Emotion zeigt.",
       steps:["Die Emotion wie gewohnt benennen.", "Die Intensität auf einer Skala von 1 bis 10 einschätzen.", "Kurz spüren, wo im Körper sich das Gefühl bemerkbar macht."] } },
-  { id:"35", tier:1, title:"Der Kontakt zur Natur", action:"10 Minuten an einen grünen, natürlichen Ort gehen und bewusst mit allen Sinnen wahrnehmen.", proposal:false, bestTime:"any",
+  { id:"35", tier:1, title:"Der Kontakt zur Natur", action:"10 Minuten an einen grünen, natürlichen Ort gehen und bewusst mit allen Sinnen wahrnehmen.", proposal:false, bestTime:"any", tags:["Natur", "Sinne"],
     steps:["Einen Ort mit Bäumen, Grün oder Wasser in der Nähe aufsuchen.", "Langsam gehen und bewusst hinschauen, hören, riechen.", "Wenn möglich etwas Natürliches kurz berühren — Rinde, Gras, Wasser."],
     variation:"Kein Grün in der Nähe? Auch ein paar Zimmerpflanzen oder ein bewusster Blick auf den Himmel wirken schon in klein.",
     deepen:{ action:"Diesmal 20 statt 10 Minuten, ohne Zeitdruck.",
       steps:["Wie gewohnt einen grünen Ort aufsuchen.", "Diesmal 20 statt 10 Minuten dort bleiben.", "Bewusst langsamer werden, je länger du dort bist."] } },
-  { id:"36", tier:2, title:"Ein echtes Kompliment", action:"Einer Person heute etwas Konkretes und Ehrliches sagen, das du an ihr schätzt.", proposal:false, bestTime:"any",
+  { id:"36", tier:2, title:"Ein echtes Kompliment", action:"Einer Person heute etwas Konkretes und Ehrliches sagen, das du an ihr schätzt.", proposal:false, bestTime:"any", tags:["Wertschätzung", "Verbindung"],
     steps:["Kurz überlegen, was dir an jemandem wirklich aufgefallen ist.", "Es konkret aussprechen, nicht nur allgemein 'gut gemacht'.", "Die Reaktion der Person einfach wahrnehmen, ohne mehr zu erwarten."],
     variation:"Persönlich zu unangenehm? Auch schriftlich, z. B. per Nachricht, wirkt ein konkretes Kompliment.",
     deepen:{ action:"Diesmal nicht nur eine Handlung loben, sondern eine Charaktereigenschaft, die du an der Person schätzt.",
       steps:["Überlegen, welche Eigenschaft (nicht nur Handlung) du an der Person wirklich schätzt.", "Es ihr in eigenen Worten erklären, warum das für dich zählt.", "Den Moment wirken lassen, ohne ihn abzukürzen."] } },
-  { id:"37", tier:5, title:"Der Werte-Check", action:"Aufschreiben, was dir gerade wirklich wichtig ist, und kurz prüfen, ob dein Alltag dazu passt.", proposal:false, bestTime:"any",
+  { id:"37", tier:5, title:"Der Werte-Check", action:"Aufschreiben, was dir gerade wirklich wichtig ist, und kurz prüfen, ob dein Alltag dazu passt.", proposal:false, bestTime:"any", tags:["Werte", "Reflexion"],
     steps:["3–5 Dinge aufschreiben, die dir aktuell wirklich wichtig sind.", "Bei jedem kurz notieren, warum es zählt.", "Ehrlich schauen, wo dein Alltag gerade davon abweicht — ohne es sofort zu bewerten."],
     variation:"Zu viel auf einmal? Reicht auch, sich nur auf einen einzigen Wert zu konzentrieren.",
     deepen:{ action:"Diesmal zusätzlich EINE konkrete Handlung festlegen, die diese Woche einem der Werte mehr Raum gibt.",
       steps:["Die Werte-Liste wie gewohnt erstellen.", "Den Wert wählen, der aktuell am meisten zu kurz kommt.", "Eine konkrete, kleine Handlung dafür für diese Woche festlegen."] } },
-  { id:"38", tier:5, title:"Die große Frage", action:"Dir bewusst Zeit für eine große, unbeantwortete Frage nehmen — ohne sie lösen zu müssen.", proposal:false, bestTime:"any",
+  { id:"38", tier:5, title:"Die große Frage", action:"Dir bewusst Zeit für eine große, unbeantwortete Frage nehmen — ohne sie lösen zu müssen.", proposal:false, bestTime:"any", tags:["Reflexion", "Bedeutung"],
     steps:["Eine Frage wählen, die dich wirklich beschäftigt, ohne einfache Antwort.", "Ein paar Minuten einfach damit sitzen, statt sie schnell zu beantworten.", "Falls du magst: aufschreiben, was dabei auftaucht — ohne Anspruch auf eine fertige Antwort."],
     variation:"Fällt dir keine eigene Frage ein? Auch 'Was würde sich ändern, wenn ich heute wirklich ehrlich zu mir wäre?' funktioniert als Einstieg.",
     deepen:{ action:"Diesmal die Frage schriftlich weiterverfolgen statt nur damit zu sitzen.",
@@ -891,32 +1354,32 @@ const INTERVENTIONS = [
   // Muster ALLER 5 bestehenden Items: Reibung/Reize REDUZIEREN, nicht zusätzliche kognitive Last
   // erzeugen (deshalb z. B. keine "kritisches Denken üben"-Übung, das wäre das Gegenteil). Ebene 4
   // bleibt beim bisherigen Muster: bewusste Handlung/Wiederholung/Grenzen setzen (nicht Entspannung).
-  { id:"39", tier:3, title:"Die Benachrichtigungs-Pause", action:"Für die nächste Stunde alle Benachrichtigungen auf deinem Handy stummschalten.", proposal:false, bestTime:"any",
+  { id:"39", tier:3, title:"Die Benachrichtigungs-Pause", action:"Für die nächste Stunde alle Benachrichtigungen auf deinem Handy stummschalten.", proposal:false, bestTime:"any", tags:["Ruhe", "Fokus"],
     steps:["Handy in den Nicht-stören-Modus oder Flugmodus versetzen.", "Bewusst eine Stunde als Zeitraum festlegen.", "Nach Ablauf ganz normal wieder erreichbar sein."],
     variation:"Ganz stumm ist zu viel? Auch nur die lautesten Apps (Social Media, News) für die Stunde stummschalten reicht schon.",
     deepen:{ action:"Diesmal einen halben Tag statt nur eine Stunde.",
       steps:["Handy wie gewohnt in den Nicht-stören-Modus versetzen.", "Diesmal einen halben Tag statt nur eine Stunde festlegen.", "Wichtige Kontakte vorher kurz informieren, falls nötig."] } },
-  { id:"40", tier:3, title:"Das Info-Fasten", action:"Für die nächste Stunde bewusst keine Nachrichten, News oder Social Media checken.", proposal:false, bestTime:"any",
+  { id:"40", tier:3, title:"Das Info-Fasten", action:"Für die nächste Stunde bewusst keine Nachrichten, News oder Social Media checken.", proposal:false, bestTime:"any", tags:["Reizreduktion", "Klarheit"],
     steps:["Für dich festlegen: die nächste Stunde ohne News- oder Social-Media-Apps.", "Bei Drang, kurz zu checken, stattdessen einmal tief durchatmen.", "Nach der Stunde ganz normal weiterschauen, wenn du magst."],
     variation:"Eine ganze Stunde ist zu viel? Auch 20 bewusste Minuten sind schon ein Info-Fasten.",
     deepen:{ action:"Diesmal einen halben Tag statt einer Stunde ohne News oder Social Media.",
       steps:["Für dich einen halben Tag ohne News-/Social-Media-Apps festlegen.", "Apps notfalls für den Zeitraum vom Homescreen verbannen.", "Danach bewusst nur kurz reinschauen statt alles nachzuholen."] } },
-  { id:"41", tier:3, title:"Die einfache Wahl", action:"Bei der nächsten kleinen Entscheidung bewusst die einfachste Option wählen, statt lange abzuwägen.", proposal:false, bestTime:"any",
+  { id:"41", tier:3, title:"Die einfache Wahl", action:"Bei der nächsten kleinen Entscheidung bewusst die einfachste Option wählen, statt lange abzuwägen.", proposal:false, bestTime:"any", tags:["Entscheidung", "Energie"],
     steps:["Auf die nächste kleine, nicht folgenreiche Entscheidung warten.", "Die erste naheliegende Option nehmen, ohne weiter zu vergleichen.", "Bewusst wahrnehmen, wie viel Energie das spart."],
     variation:"Fällt dir schwer loszulassen? Setz dir eine Frist von 10 Sekunden für die Entscheidung.",
     deepen:{ action:"Diesmal bei drei kleinen Entscheidungen hintereinander die einfachste Option wählen, nicht nur bei einer.",
       steps:["Den restlichen Tag bewusst im Blick behalten.", "Bei drei kleinen Entscheidungen jeweils die einfachste Option wählen.", "Am Ende merken, wie viel Entscheidungsenergie das gespart hat."] } },
-  { id:"42", tier:4, title:"Der Timer-Sprint", action:"25 Minuten am Stück und ohne Unterbrechung an einer Sache arbeiten, die dich fordert.", proposal:false, bestTime:"any",
+  { id:"42", tier:4, title:"Der Timer-Sprint", action:"25 Minuten am Stück und ohne Unterbrechung an einer Sache arbeiten, die dich fordert.", proposal:false, bestTime:"any", tags:["Fokus", "Konzentration"],
     steps:["Timer auf 25 Minuten stellen.", "Alles andere für diese Zeit beiseitelegen — nur die eine Aufgabe.", "Nach dem Timer bewusst kurz pausieren, bevor es weitergeht."],
     variation:"25 Minuten zu lang? Auch 10 Minuten ungestörter Fokus sind schon ein Sprint.",
     deepen:{ action:"Diesmal 50 Minuten am Stück statt 25, mit einer kurzen Pause nach der Hälfte.",
       steps:["Timer auf 50 Minuten stellen.", "Nach 25 Minuten eine kurze bewusste Pause von 2–3 Minuten.", "Danach die zweite Hälfte in gleicher Konzentration fortsetzen."] } },
-  { id:"43", tier:4, title:"Das Nein", action:"Sag heute bewusst 'Nein' zu einer Sache, die dir eigentlich nicht guttut.", proposal:false, bestTime:"any",
+  { id:"43", tier:4, title:"Das Nein", action:"Sag heute bewusst 'Nein' zu einer Sache, die dir eigentlich nicht guttut.", proposal:false, bestTime:"any", tags:["Grenzen", "Selbstachtung"],
     steps:["Eine Anfrage oder Gewohnheit identifizieren, bei der du eigentlich zögerst.", "Klar und freundlich absagen, ohne dich lang zu rechtfertigen.", "Beim Nein bleiben, auch wenn der Impuls kommt, es zurückzunehmen."],
     variation:"Ein klares Nein fällt schwer? Auch 'Ich melde mich dazu noch mal' ist schon ein kleiner Schritt Richtung Grenze.",
     deepen:{ action:"Diesmal eine wiederkehrende Sache ablehnen, nicht nur eine einmalige.",
       steps:["Eine wiederkehrende Anfrage oder Gewohnheit identifizieren, die dir nicht guttut.", "Klar sagen, dass das ab jetzt nicht mehr geht — nicht nur dieses eine Mal.", "Beim Nein bleiben, auch wenn Nachfragen kommen."] } },
-  { id:"44", tier:4, title:"Die kleine Lehre", action:"Erklär heute jemandem kurz etwas, das du selbst gut kannst.", proposal:false, bestTime:"any",
+  { id:"44", tier:4, title:"Die kleine Lehre", action:"Erklär heute jemandem kurz etwas, das du selbst gut kannst.", proposal:false, bestTime:"any", tags:["Handeln", "Wissen", "Weitergeben"],
     steps:["Etwas auswählen, das du wirklich beherrschst — egal wie klein.", "Es einer Person in einfachen Worten erklären oder zeigen.", "Bemerken, wie das eigene Verständnis dabei noch klarer wird."],
     variation:"Niemand gerade da zum Erklären? Auch das Aufschreiben, als würdest du es jemandem erklären, wirkt ähnlich.",
     deepen:{ action:"Diesmal nicht nur kurz erklären, sondern die Person es unter deiner Anleitung selbst einmal ausprobieren lassen.",
@@ -925,31 +1388,78 @@ const INTERVENTIONS = [
   // Bewusst nur diese fünf, nicht mehr: sie decken Konzepte ab, die im bisherigen Inventar von 44
   // Items komplett fehlten (Bewegung in Ebene 0, Humor in Ebene 1, Umarmung in Ebene 2, Wochenplanung
   // in Ebene 4, formale Meditation in Ebene 5) — nicht bloß Umformulierungen von etwas Vorhandenem.
-  { id:"45", tier:0, title:"10 Minuten Gehen", action:"10 Minuten in moderatem Tempo gehen, egal wohin.", proposal:false, bestTime:"any",
+  { id:"45", tier:0, title:"10 Minuten Gehen", action:"10 Minuten in moderatem Tempo gehen, egal wohin.", proposal:false, bestTime:"any", tags:["Bewegung", "Frischluft"],
     steps:["Raus, ohne langes Überlegen wohin genau.", "Ein gleichmäßiges, angenehmes Tempo halten.", "Bewusst durch die Nase ein- und durch den Mund ausatmen."],
     variation:"Keine 10 Minuten am Stück möglich? Auch zwei Mal 5 Minuten über den Tag verteilt zählen.",
     deepen:{ action:"Diesmal 20 Minuten in zügigerem Tempo statt 10 Minuten gemütlich.",
       steps:["Wie gewohnt losgehen, diesmal etwas schneller als sonst.", "20 statt 10 Minuten durchhalten.", "Am Ende kurz merken, wie sich Kopf und Körper jetzt anfühlen."] } },
-  { id:"46", tier:1, title:"Lachen", action:"Dir bewusst etwas suchen, das dich wirklich zum Lachen bringt — ein Video, eine Erinnerung, ein Mensch.", proposal:false, bestTime:"any",
+  { id:"46", tier:1, title:"Lachen", action:"Dir bewusst etwas suchen, das dich wirklich zum Lachen bringt — ein Video, eine Erinnerung, ein Mensch.", proposal:false, bestTime:"any", tags:["Humor", "Leichtigkeit"],
     steps:["Etwas suchen, von dem du weißt, dass es dich zum Lachen bringt.", "Dir die paar Minuten dafür wirklich nehmen.", "Das Lachen zulassen, ohne es zu bewerten."],
     variation:"Fällt dir nichts ein? Auch an eine wirklich lustige Erinnerung zurückdenken funktioniert.",
     deepen:{ action:"Diesmal das Lachen mit jemandem teilen statt allein zu bleiben.",
       steps:["Das Lustige einer Person zeigen oder erzählen.", "Gemeinsam lachen, nicht nur zusehen wie die Person lacht.", "Den Moment kurz wirken lassen, bevor es weitergeht."] } },
-  { id:"47", tier:2, title:"Eine Umarmung", action:"Eine Person heute bewusst um eine Umarmung bitten oder eine anbieten — mindestens 6 Sekunden halten.", proposal:false, bestTime:"any",
+  { id:"47", tier:2, title:"Eine Umarmung", action:"Eine Person heute bewusst um eine Umarmung bitten oder eine anbieten — mindestens 6 Sekunden halten.", proposal:false, bestTime:"any", tags:["Nähe", "Berührung"],
     steps:["Kurz fragen oder anbieten, ob eine Umarmung okay ist.", "Wirklich ganz umarmen, nicht nur kurz antippen.", "Mindestens 6 Sekunden halten, bevor du loslässt."],
     variation:"Niemand gerade da? Auch eine Hand auf den eigenen Arm oder Brustkorb legen wirkt beruhigend.",
     deepen:{ action:"Diesmal bewusst länger halten — 10 Sekunden statt 6.",
       steps:["Wie gewohnt um eine Umarmung bitten oder anbieten.", "Diesmal bewusst bis 10 zählen, bevor du loslässt.", "Die Wärme und den Kontakt dabei bewusst wahrnehmen."] } },
-  { id:"48", tier:4, title:"Der Wochenplan", action:"10 Minuten die kommende Woche grob planen — was zählt wirklich, was kann warten.", proposal:false, bestTime:"any",
+  { id:"48", tier:4, title:"Der Wochenplan", action:"10 Minuten die kommende Woche grob planen — was zählt wirklich, was kann warten.", proposal:false, bestTime:"any", tags:["Struktur", "Ordnung"],
     steps:["Kurz auf die kommende Woche schauen.", "Die 2–3 wirklich wichtigen Dinge markieren.", "Alles andere bewusst als 'kann warten' einordnen."],
     variation:"Zu viel für eine ganze Woche? Auch nur der nächste Tag reicht als Einstieg.",
     deepen:{ action:"Diesmal 20 Minuten, inklusive eines kurzen Rückblicks auf die letzte Woche.",
       steps:["Kurz reflektieren, was in der letzten Woche gut lief und was nicht.", "Die kommende Woche wie gewohnt grob planen.", "Eine konkrete Lehre aus der letzten Woche in den neuen Plan einbauen."] } },
-  { id:"49", tier:5, title:"Stille Meditation", action:"10 Minuten in Stille sitzen und die Aufmerksamkeit immer wieder sanft zum Atem zurückbringen.", proposal:false, bestTime:"any",
+  { id:"49", tier:5, title:"Stille Meditation", action:"10 Minuten in Stille sitzen und die Aufmerksamkeit immer wieder sanft zum Atem zurückbringen.", proposal:false, bestTime:"any", tags:["Stille", "Atmen"],
     steps:["Bequem und aufrecht hinsetzen, Timer auf 10 Minuten.", "Aufmerksamkeit auf den Atem richten.", "Wenn der Geist abschweift, sanft und ohne Urteil zurückkommen."],
     variation:"10 Minuten zu lang für den Anfang? Auch 5 Minuten sind schon eine vollständige Übung.",
     deepen:{ action:"Diesmal 20 statt 10 Minuten in Stille sitzen.",
-      steps:["Wie gewohnt bequem hinsetzen, diesmal Timer auf 20 Minuten.", "Aufmerksamkeit auf den Atem richten.", "Abschweifen so oft wie nötig sanft wieder loslassen — ohne Frustration."] } }
+      steps:["Wie gewohnt bequem hinsetzen, diesmal Timer auf 20 Minuten.", "Aufmerksamkeit auf den Atem richten.", "Abschweifen so oft wie nötig sanft wieder loslassen — ohne Frustration."] } },
+  // ---- #50–56: "Skilltree des perfekten Lebens" — Lücke bei aufbauenden Aktivitäten geschlossen (v0.34) ----
+  // Julians Beobachtung: das bisherige Inventar (49 Items) ist stark auf Regulation/Reibungsreduktion
+  // ausgerichtet (Wasser trinken, Tabs schließen, kalt duschen) — es fehlten die Aktivitäten, die aktiv
+  // ein reiches, vielseitiges Leben AUFBAUEN, statt nur ein Defizit zu beheben (Laufen, Fitnessstudio,
+  // Essen mit Freunden als Kern-Beispiele). Bewusst kein neuer Ebenen-Fokus, keine neue Kategorie im
+  // Datenmodell — nur sieben neue, sorgfältig ausgewählte Items in bestehenden Ebenen, die klare,
+  // bisher unbesetzte Lücken schließen (kein Ausdauersport, kein Krafttraining, keine echte Mahlzeit in
+  // Ebene 0; kein primäres "gemeinsames Essen" oder Gruppenzugehörigkeit in Ebene 2 — #17 deckte
+  // gemeinsames Essen bisher nur als vertiefte Stufe einer anderen Übung ab, nicht als eigenständiges
+  // Item; kein Hobby/Kompetenz-Aufbau aus Freude in Ebene 4; keine Dankbarkeits-Praxis in Ebene 5).
+  // Ebene 1 und 3 bewusst NICHT erweitert: Ebene 3 bleibt laut eigenem Designprinzip (siehe #39–44)
+  // strikt bei Reibungsreduktion, nicht bei zusätzlicher Aktivität; Ebene 1 war bereits gut abgedeckt.
+  { id:"50", tier:0, title:"Laufen", action:"15–20 Minuten in gemütlichem Tempo laufen — ohne Distanz- oder Zeitdruck.", proposal:false, bestTime:"any", tags:["Ausdauer", "Bewegung"],
+    steps:["Passende Kleidung und Schuhe anziehen.", "In einem Tempo starten, bei dem du dich noch unterhalten könntest.", "15–20 Minuten durchhalten, auch wenn es nur eine kleine Runde ist."],
+    variation:"Laufen belastet die Gelenke gerade zu sehr? Ein zügiger Spaziergang bringt einen Teil des gleichen Effekts.",
+    deepen:{ action:"Diesmal ein kurzes Intervall einbauen: 3–4 Mal 1 Minute schneller laufen, dazwischen locker traben.",
+      steps:["Wie gewohnt locker einlaufen.", "3–4 Mal 1 Minute spürbar schneller laufen, dazwischen wieder lockeres Tempo.", "Die letzten Minuten ruhig auslaufen."] } },
+  { id:"51", tier:0, title:"Kurzes Krafttraining", action:"20 Minuten gezielt Muskeln aufbauen — im Studio oder mit dem eigenen Körpergewicht.", proposal:false, bestTime:"any", tags:["Kraft", "Körper"],
+    steps:["3–4 einfache Übungen wählen (z. B. Kniebeugen, Liegestütze, Unterarmstütz, Ausfallschritte).", "Jede Übung in 2–3 Sätzen ausführen.", "Auf saubere Ausführung statt auf Tempo achten."],
+    variation:"Kein Fitnessstudio in der Nähe oder gerade keine Zeit dafür? Die gleichen Übungen funktionieren auch 20 Minuten zuhause ganz ohne Geräte.",
+    deepen:{ action:"Diesmal eine Übung mehr oder einen zusätzlichen Satz ergänzen, um die Belastung langsam zu steigern.",
+      steps:["Die gewohnten Übungen wie gewohnt ausführen.", "Eine zusätzliche Übung oder einen vierten Satz ergänzen.", "Danach kurz merken, wo sich die höhere Belastung bemerkbar macht."] } },
+  { id:"52", tier:0, title:"Eine echte Mahlzeit kochen", action:"Statt etwas schnell zu essen, eine vollständige Mahlzeit frisch zubereiten.", proposal:false, bestTime:"evening", tags:["Nahrung", "Selbstfürsorge"],
+    steps:["Ein einfaches Gericht mit frischen Zutaten wählen.", "Dir bewusst die Zeit dafür nehmen, ohne nebenbei etwas anderes zu tun.", "Die Mahlzeit anschließend in Ruhe essen, nicht im Stehen oder vor dem Bildschirm."],
+    variation:"Wenig Zeit oder Kochkünste? Auch ein einfacher, frisch zusammengestellter Salat oder ein belegtes Brot zählt schon.",
+    deepen:{ action:"Diesmal für mehr als eine Portion kochen und den Rest für morgen aufheben — ein kleiner Vorrat entlastet den nächsten Tag.",
+      steps:["Ein Gericht wählen, das sich gut in größerer Menge zubereiten lässt.", "Bewusst für 2–3 Portionen kochen statt nur für jetzt.", "Den Rest sichtbar für morgen bereitstellen."] } },
+  { id:"53", tier:2, title:"Essen mit Freunden", action:"Eine Mahlzeit mit einer oder mehreren nahestehenden Personen verabreden und gemeinsam essen.", proposal:false, bestTime:"evening", tags:["Gemeinschaft", "Verbindung"],
+    steps:["Mindestens eine Person fragen, ob sie Zeit für ein gemeinsames Essen hat.", "Einen konkreten Termin ausmachen, statt es vage zu lassen.", "Beim Essen bewusst beieinander bleiben, ohne Ablenkung durch Handy oder Bildschirm."],
+    variation:"Kein Termin kurzfristig möglich? Auch ein spontaner Kaffee oder ein gemeinsamer Spaziergang wirkt ähnlich verbindend.",
+    deepen:{ action:"Diesmal mehr als eine Person einladen — ein kleines gemeinsames Essen statt nur zu zweit.",
+      steps:["Zwei oder mehr Personen fragen statt nur eine.", "Einen gemeinsamen Termin finden, der für alle passt.", "Das Essen bewusst als Gruppe genießen, ohne Ablenkung durch Handy oder Bildschirm."] } },
+  { id:"54", tier:2, title:"Einer Gruppe anschließen", action:"An einem Gruppentermin teilnehmen — Sportgruppe, Kurs, Verein oder Ähnliches.", proposal:false, bestTime:"evening", tags:["Zugehörigkeit", "Gemeinschaft"],
+    steps:["Eine bestehende oder neue Gruppe finden, die zu einem Interesse passt.", "Konkret hingehen oder daran teilnehmen, nicht nur vormerken.", "Bewusst mit mindestens einer Person dort ins Gespräch kommen."],
+    variation:"Keine passende Gruppe bekannt? Auch eine Online-Community mit echtem Austausch (nicht nur Mitlesen) ist ein Anfang.",
+    deepen:{ action:"Diesmal aktiv etwas beitragen oder mitorganisieren, statt nur teilzunehmen.",
+      steps:["Wie gewohnt an der Gruppe teilnehmen.", "Eine Aufgabe, Idee oder Hilfe aktiv anbieten.", "Wahrnehmen, wie sich aktive Teilhabe von reiner Teilnahme unterscheidet."] } },
+  { id:"55", tier:4, title:"Zeit für ein Hobby", action:"20–30 Minuten bewusst einer Fähigkeit widmen, die du aus Freude lernst oder ausübst — nicht aus Pflicht.", proposal:false, bestTime:"any", tags:["Freude", "Kompetenz"],
+    steps:["Ein Hobby oder eine Fertigkeit wählen, die dich interessiert (Instrument, Handwerk, Sprache, Kunst o. Ä.).", "Einen festen Zeitblock dafür reservieren.", "Dranbleiben, auch wenn es noch nicht perfekt klappt — der Prozess zählt."],
+    variation:"Kein aktuelles Hobby? Auch das Ausprobieren von etwas komplett Neuem für diese 20 Minuten zählt als Anfang.",
+    deepen:{ action:"Diesmal 45–60 Minuten statt 20–30, für mehr Tiefe in einer Sitzung.",
+      steps:["Wie gewohnt ein Hobby oder eine Fertigkeit wählen.", "Diesmal 45–60 statt 20–30 Minuten dafür reservieren.", "Am Ende kurz merken, was sich durch die längere Zeit verändert hat."] } },
+  { id:"56", tier:5, title:"Dankbarkeits-Notiz", action:"Drei Dinge aufschreiben, für die du gerade dankbar bist — so konkret wie möglich.", proposal:false, bestTime:"any", tags:["Dankbarkeit", "Aufschreiben"],
+    steps:["Kurz innehalten.", "Drei konkrete Dinge aufschreiben, nicht nur allgemeine Kategorien.", "Bei jedem kurz spüren, warum es zählt, statt nur eine Liste abzuhaken."],
+    variation:"Fällt dir nichts ein? Auch etwas ganz Kleines (eine warme Tasse Kaffee, ein Sonnenstrahl) zählt.",
+    deepen:{ action:"Diesmal bei einem der drei Punkte einer Person, die daran beteiligt war, direkt danken — mündlich oder schriftlich.",
+      steps:["Die drei Dinge wie gewohnt aufschreiben.", "Einen Punkt auswählen, an dem eine Person beteiligt war.", "Dieser Person direkt und konkret danken."] } }
 ];
 
 // ---- 3. Persistenz (seit v0.7) ------------------------------------
@@ -959,8 +1469,10 @@ const INTERVENTIONS = [
 // "einschleift" (unterschiedliche Menschen -> unterschiedliches Feedback -> unterschiedliche
 // Gewichtung über Wochen, nicht nur pro Sitzung). Bewusst NUR `localStorage` im selben Browser —
 // kein Konto, kein Server, keine Synchronisation zwischen Geräten. Alles bleibt lokal bei der Person.
-const STORAGE_KEYS = { weights: "humaneed_weights_v1", history: "humaneed_history_v1", reflections: "humaneed_reflections_v1" };
+const STORAGE_KEYS = { weights: "humaneed_weights_v1", history: "humaneed_history_v1", reflections: "humaneed_reflections_v1", outcomes: "humaneed_outcomes_v1", moodWeights: "humaneed_mood_weights_v1", moodXP: "humaneed_mood_xp_v1" };
 const HISTORY_LIMIT = 300; // Obergrenze, damit localStorage nicht unbegrenzt wächst
+const WELCOME_SEEN_KEY = "humaneed_welcome_seen_v1"; // seit v0.28, siehe Screen 0 weiter oben
+const MOOD_KEY = "humaneed_entry_mood_v1"; // seit v0.39: Stimmungs-Widget ist jetzt dauerhaft (nicht mehr pro Zyklus), speichert nur den MOOD_OPTIONS-key als String oder gar nichts
 
 function todayIso(){ return new Date().toISOString().slice(0, 10); }
 
@@ -987,6 +1499,108 @@ function saveWeights(){
   catch (e) { console.warn("Konnte Gewichtungen nicht speichern.", e); }
 }
 
+// ---- Mood-Skilltree (seit v0.40) -----------------------------------------------------------------
+// Julians Wunsch: "emoji hat einen individuellen skilltree?" — jedes der 6 MOOD_OPTIONS bekommt eine
+// eigene, von den anderen 5 UND vom globalen `weights` komplett unabhängige Gewichtungs-Struktur.
+// Gleiches Lern-Prinzip wie `weights` (0.2–3.0, Qualia-Feedback verschiebt graduell, siehe
+// finishFeedback()), aber pro Mood-Key separat unter `moodWeights[moodKey][interventionId]`
+// gespeichert, mit Default 1.0 wie beim globalen Pendant. Genutzt wird das nur, wenn ein Zyklus
+// tatsächlich vom Emoji gesteuert wurde (siehe cycleMoodSelectionActive in advanceCheckin()) — läuft
+// die Auswahl wie zuvor über den rechnerischen Engpass, bleibt das globale `weights` unverändert
+// zuständig, exakt wie vor v0.40.
+function loadMoodWeights(){
+  const defaults = {};
+  MOOD_OPTIONS.forEach(m => defaults[m.key] = {});
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.moodWeights);
+    if (!raw) return defaults;
+    const stored = JSON.parse(raw);
+    MOOD_OPTIONS.forEach(m => {
+      if (stored[m.key] && typeof stored[m.key] === "object") defaults[m.key] = stored[m.key];
+    });
+    return defaults;
+  } catch (e) {
+    console.warn("Konnte gespeicherten Mood-Skilltree nicht lesen, starte mit Standardwerten.", e);
+    return defaults;
+  }
+}
+
+function saveMoodWeights(){
+  try { localStorage.setItem(STORAGE_KEYS.moodWeights, JSON.stringify(moodWeights)); }
+  catch (e) { console.warn("Konnte Mood-Skilltree nicht speichern.", e); }
+}
+
+function getMoodWeight(moodKey, ivId){
+  const w = moodWeights[moodKey] && moodWeights[moodKey][ivId];
+  return typeof w === "number" ? w : 1.0;
+}
+
+function setMoodWeight(moodKey, ivId, value){
+  if (!moodWeights[moodKey]) moodWeights[moodKey] = {};
+  moodWeights[moodKey][ivId] = value;
+}
+
+// ---- Schwaches Cross-Learning zwischen verwandten Stimmungen (seit v0.43) -------------------------
+// Siehe MOOD_OPTIONS-Kommentar oben für die volle Begründung (Julians Gewichtheben-Beispiel: Wut UND
+// gute Laune sind beides hochenergetische Zustände, auch wenn die Valenz gegensätzlich ist). Nur ein
+// BRUCHTEIL des primären Gewichtungs-Deltas wandert in Stimmungen desselben `cluster` — bewusst
+// schwach ("ein bisschen lernen", nicht gleichsetzen), löst nie eigenes XP aus (siehe finishFeedback()
+// weiter unten) und betrifft nie Stimmungen aus dem jeweils anderen Cluster.
+const MOOD_CROSS_LEARNING_FACTOR = 0.33;
+
+function moodCluster(moodKey){
+  const m = MOOD_OPTIONS.find(mm => mm.key === moodKey);
+  return m ? m.cluster : null;
+}
+
+function applyMoodCrossLearning(sourceMoodKey, ivId, primaryDelta){
+  const cluster = moodCluster(sourceMoodKey);
+  if (!cluster) return;
+  const crossDelta = primaryDelta * MOOD_CROSS_LEARNING_FACTOR;
+  MOOD_OPTIONS.forEach(m => {
+    if (m.key === sourceMoodKey || m.cluster !== cluster) return;
+    const next = Math.min(3, Math.max(0.2, getMoodWeight(m.key, ivId) + crossDelta));
+    setMoodWeight(m.key, ivId, next);
+  });
+}
+
+// ---- Mood-XP/Level (seit v0.40) ------------------------------------------------------------------
+// Sichtbarer Fortschritt PRO EMOJI, wie von Julian gewünscht — bewusst nur bei positivem Feedback
+// ("besser") erhöht, nie bei "schlechter" gesenkt (kein Strafmechanismus, konsistent mit dem
+// bestehenden Wu-Wei-Prinzip der App: Gewichte können sinken, ein einmal erreichter Fortschritt/Level
+// nicht). Nur ein einfacher Zähler + feste Schwellen, kein Punktesystem mit Multiplikatoren o. Ä.
+const MOOD_LEVEL_THRESHOLDS = [0, 3, 7, 12, 20]; // Level 1..5, Index 0 = Level 1 ab 0 XP
+
+function loadMoodXP(){
+  const defaults = {};
+  MOOD_OPTIONS.forEach(m => defaults[m.key] = 0);
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.moodXP);
+    if (!raw) return defaults;
+    const stored = JSON.parse(raw);
+    MOOD_OPTIONS.forEach(m => {
+      if (typeof stored[m.key] === "number") defaults[m.key] = stored[m.key];
+    });
+    return defaults;
+  } catch (e) {
+    console.warn("Konnte gespeichertes Mood-XP nicht lesen, starte mit Standardwerten.", e);
+    return defaults;
+  }
+}
+
+function saveMoodXP(){
+  try { localStorage.setItem(STORAGE_KEYS.moodXP, JSON.stringify(moodXP)); }
+  catch (e) { console.warn("Konnte Mood-XP nicht speichern.", e); }
+}
+
+function computeMoodLevel(xp){
+  let level = 1;
+  for (let i = 1; i < MOOD_LEVEL_THRESHOLDS.length; i++){
+    if (xp >= MOOD_LEVEL_THRESHOLDS[i]) level = i + 1;
+  }
+  return level;
+}
+
 function loadHistory(){
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.history);
@@ -1004,12 +1618,17 @@ function saveHistory(){
   } catch (e) { console.warn("Konnte Verlauf nicht speichern.", e); }
 }
 
-// Tagesabschluss (seit v0.9): die Selbstwert-Reflexion ("Form gehalten oder verstellt?") war
-// ursprünglich als EINMALIGE Tages-Reflexion gedacht (siehe Blueprint-Ergänzung, Kapitel IX), lief
-// in v0.1–v0.8 aber fälschlich bei JEDEM Zyklus mit. Julians Klarstellung: Qualia-Bewertung bleibt
-// pro Zyklus, die Form-Reflexion gehört an den Tagesabschluss. Bewusst freiwillig und ohne jede
-// Erinnerung/Benachrichtigung ("soll sich nicht wie ein Tamagotchi anfühlen") — die Karte liegt
-// einfach auf dem Summary-Screen, niemand wird aktiv dazu aufgefordert.
+// Tagesabschluss (seit v0.9): die Selbstwert-Reflexion war ursprünglich als EINMALIGE Tages-Reflexion
+// gedacht (siehe Blueprint-Ergänzung, Kapitel IX), lief in v0.1–v0.8 aber fälschlich bei JEDEM Zyklus
+// mit. Julians Klarstellung: Qualia-Bewertung bleibt pro Zyklus, die Reflexion gehört an den
+// Tagesabschluss. Bewusst freiwillig und ohne jede Erinnerung/Benachrichtigung ("soll sich nicht wie
+// ein Tamagotchi anfühlen") — die Karte liegt einfach auf dem Summary-Screen, niemand wird aktiv dazu
+// aufgefordert.
+// Frage-Text seit v0.29 umformuliert ("Bist du dir heute treu geblieben, oder hast du dich
+// verbogen?", vorher "Hast du heute die Form gehalten, oder hast du sie verstellt?") — Julians
+// eigener Test im Freundeskreis zeigte, dass die "Form"-Metapher ohne persönliche Erklärung nicht
+// verstanden wurde. Interne Zustands-Keys "held"/"bent" bewusst unverändert gelassen (nur Anzeige-
+// Text geändert) — bestehende gespeicherte Tagesreflexionen bleiben dadurch ohne Migration gültig.
 function loadReflections(){
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.reflections);
@@ -1037,16 +1656,16 @@ function renderDayClose(){
   const existing = dailyReflections[today];
   if (!existing){
     content.innerHTML = `
-      <div class="dayclose-question">Hast du heute die Form gehalten, oder hast du sie verstellt?</div>
+      <div class="dayclose-question">Bist du dir heute treu geblieben, oder hast du dich verbogen?</div>
       <div class="row">
-        <button class="opt-btn" id="btn-dayclose-held">Gehalten</button>
-        <button class="opt-btn" id="btn-dayclose-bent">Verstellt</button>
+        <button class="opt-btn" id="btn-dayclose-held">Treu geblieben</button>
+        <button class="opt-btn" id="btn-dayclose-bent">Verbogen</button>
       </div>
     `;
     document.getElementById("btn-dayclose-held").addEventListener("click", () => setTodaysReflection("held"));
     document.getElementById("btn-dayclose-bent").addEventListener("click", () => setTodaysReflection("bent"));
   } else {
-    const label = existing === "held" ? "Form gehalten." : "Form verstellt — kein Problem, morgen ist ein neuer Tag.";
+    const label = existing === "held" ? "Dir treu geblieben." : "Heute verbogen — kein Problem, morgen ist ein neuer Tag.";
     content.innerHTML = `<div class="dayclose-done">Heute schon beantwortet: ${label}<button type="button" class="change-link" id="btn-dayclose-change">ändern</button></div>`;
     document.getElementById("btn-dayclose-change").addEventListener("click", renderDayCloseUnanswered);
   }
@@ -1058,23 +1677,185 @@ function renderDayCloseUnanswered(){
   renderDayClose();
 }
 
+// ---- Wöchentliche Wirkungsmessung (seit v0.31) -----------------------------------------------
+// Direkte Umsetzung einer selbst gestellten Architektur-Kritik: die Qualia-Frage nach jedem Zyklus
+// ("wie fühlst du dich JETZT, direkt nach der Handlung?") ist anfällig für Demand-Characteristics/
+// Placebo — sie zeigt bestenfalls, ob eine einzelne Handlung sich im Moment gut anfühlt, nie, ob sich
+// über Wochen tatsächlich etwas verändert. Bisher hatte die App dafür GAR KEIN Messinstrument, nur
+// Prozess-Metriken (Streak, Hilfreich-Quote, häufigster Engpass) — nichts davon prüft echte Wirkung.
+// Diese Karte misst deshalb bewusst etwas anderes: eine seltene (einmal pro Woche), rückblickende,
+// vom Tages-Loop komplett entkoppelte Einschätzung des Gesamtbefindens der VERGANGENEN Woche.
+// Bewusst (noch) NICHT in `weights` oder die Gatekeeper-Schwellen eingespeist — Kapitel 8, Punkt 4 der
+// Projekthinweise gilt hier genauso wie bei jeder anderen Datenschicht: erst messen und im Alltag
+// bewähren, bevor darauf aufgebaut wird. Für jetzt: reine, ehrliche Sichtbarkeit, ob HUMANEED über
+// Zeit tatsächlich hilft — nicht nur, ob sie benutzt wird.
+function getISOWeekLabel(date){
+  // Standard-ISO-8601-Wochennummer (Donnerstag-der-Woche-Regel: eine Woche gehört zu dem Jahr, in dem
+  // ihr Donnerstag liegt) — robust über Jahresgrenzen hinweg (z. B. Ende Dezember kann bereits zu
+  // Woche 1 des Folgejahres gehören).
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = (d.getUTCDay() + 6) % 7; // Montag=0 ... Sonntag=6
+  d.setUTCDate(d.getUTCDate() - dayNum + 3); // auf den Donnerstag dieser Woche verschieben
+  const isoYear = d.getUTCFullYear();
+  const jan4 = new Date(Date.UTC(isoYear, 0, 4)); // der 4. Januar liegt per Definition immer in Woche 1
+  const jan4DayNum = (jan4.getUTCDay() + 6) % 7;
+  const week1Monday = new Date(jan4);
+  week1Monday.setUTCDate(jan4.getUTCDate() - jan4DayNum);
+  const weekNum = Math.round((d - week1Monday) / (7 * 24 * 3600 * 1000)) + 1;
+  return `${isoYear}-W${String(weekNum).padStart(2, "0")}`;
+}
+
+// Liefert das Label der Woche, die 7 Tage vor `date` lag — das funktioniert unabhängig vom
+// Wochentag von `date` immer korrekt, weil eine ISO-Woche exakt 7 Tage lang ist.
+function getPreviousISOWeekLabel(date){
+  const prev = new Date(date);
+  prev.setDate(prev.getDate() - 7);
+  return getISOWeekLabel(prev);
+}
+
+// Umkehrfunktion zu getISOWeekLabel(): liefert den Montag (00:00 UTC) einer "YYYY-Www"-Woche, mit
+// exakt demselben Woche-1-Montag-Algorithmus wie dort (Fix aus der Sinnhaftigkeits-Prüfung nach v0.33,
+// Befund 5: computeOutcomeTrend() verglich bisher einfach die letzten zwei GESPEICHERTEN Wochenwerte,
+// auch wenn dazwischen Wochen übersprungen wurden — die Anzeige sprach dann trotzdem fälschlich von
+// "der Vorwoche". Mit dieser Funktion lässt sich prüfen, ob zwei Wochen-Labels wirklich unmittelbar
+// aufeinanderfolgen, bevor die App das behauptet.
+function isoWeekLabelToMonday(label){
+  const m = /^(\d{4})-W(\d{2})$/.exec(label);
+  if (!m) return null;
+  const isoYear = parseInt(m[1], 10);
+  const week = parseInt(m[2], 10);
+  const jan4 = new Date(Date.UTC(isoYear, 0, 4));
+  const jan4DayNum = (jan4.getUTCDay() + 6) % 7;
+  const week1Monday = new Date(jan4);
+  week1Monday.setUTCDate(jan4.getUTCDate() - jan4DayNum);
+  const monday = new Date(week1Monday);
+  monday.setUTCDate(week1Monday.getUTCDate() + (week - 1) * 7);
+  return monday;
+}
+
+function loadOutcomes(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.outcomes);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    console.warn("Konnte gespeicherte Wochenwerte nicht lesen, starte leer.", e);
+    return {};
+  }
+}
+
+function saveOutcomes(){
+  try { localStorage.setItem(STORAGE_KEYS.outcomes, JSON.stringify(weeklyOutcomes)); }
+  catch (e) { console.warn("Konnte Wochenwert nicht speichern.", e); }
+}
+
+// Gleiche Werte-Skala wie die Ebenen-Fragen (10/30/50/70/90) — bewusst wiederverwendet statt einer
+// neuen Skala, damit das Datenmodell konsistent bleibt und derselbe Button-Stil (.opt-btn) passt.
+const OUTCOME_LABELS = { 10:"Sehr schlecht", 30:"Eher schlecht", 50:"Durchschnittlich", 70:"Eher gut", 90:"Sehr gut" };
+
+function setWeekOutcome(weekLabel, value){
+  weeklyOutcomes[weekLabel] = value;
+  saveOutcomes();
+  renderOutcome();
+}
+
+// Rein informativ, keine Wertung, kein grafisches Element (gleiches Prinzip wie computeTopBottleneckTier,
+// Kapitel 8: kein eigener Insights-Screen, kein Chart) — nur ein kurzer Text- und Zahlen-Vergleich.
+function computeOutcomeTrend(){
+  const weeks = Object.keys(weeklyOutcomes).sort(); // "YYYY-Www"-Label sortiert als String korrekt chronologisch
+  if (weeks.length < 2) return null; // ein einzelner Wert erlaubt noch keine Trend-Aussage
+  const values = weeks.map(w => weeklyOutcomes[w]);
+  const last = values[values.length - 1];
+  const prev = values[values.length - 2];
+  const delta = last - prev;
+  const direction = delta > 10 ? "spürbar besser" : delta < -10 ? "spürbar schlechter" : "etwa gleich";
+  const sequence = values.slice(-6).join(" · "); // jüngste 6 Wochen, chronologisch
+  // Fix (Sinnhaftigkeits-Prüfung nach v0.33, Befund 5): ob die beiden verglichenen Wochen wirklich
+  // unmittelbar aufeinanderfolgen, statt einfach die letzten zwei GESPEICHERTEN Werte zu vergleichen —
+  // bei übersprungenen Wochen (z. B. 3 Wochen Pause) wäre "Vorwoche" sonst schlicht falsch.
+  const lastMonday = isoWeekLabelToMonday(weeks[weeks.length - 1]);
+  const prevMonday = isoWeekLabelToMonday(weeks[weeks.length - 2]);
+  const isConsecutive = !!(lastMonday && prevMonday &&
+    Math.round((lastMonday - prevMonday) / (7 * 24 * 3600 * 1000)) === 1);
+  return { direction, sequence, weekCount: weeks.length, isConsecutive };
+}
+
+function renderOutcome(){
+  const card = document.getElementById("outcome-card");
+  const content = document.getElementById("outcome-content");
+  // Vor dem allerersten abgeschlossenen Zyklus ergibt eine rückblickende Wochen-Frage noch keinen
+  // Sinn (es gäbe noch gar keinen App-Kontext dafür, könnte wie ein Non-Sequitur wirken) — Karte
+  // bleibt bis dahin schlicht verborgen, kein leerer Kartenkopf ohne Inhalt.
+  if (sessionLog.length === 0){
+    card.style.display = "none";
+    return;
+  }
+  card.style.display = "";
+  const targetWeek = getPreviousISOWeekLabel(new Date());
+  const existing = weeklyOutcomes[targetWeek];
+  let html = "";
+  if (existing === undefined){
+    html += `
+      <div class="dayclose-question">Wie ging es dir in der letzten Woche insgesamt?</div>
+      <div id="outcome-options"></div>
+    `;
+  } else {
+    html += `<div class="dayclose-done">Für die letzte Woche eingetragen: ${OUTCOME_LABELS[existing]}<button type="button" class="change-link" id="btn-outcome-change">ändern</button></div>`;
+  }
+  const trend = computeOutcomeTrend();
+  if (trend){
+    // Fix (Sinnhaftigkeits-Prüfung nach v0.33, Befund 5): "Vorwoche" nur behaupten, wenn die beiden
+    // verglichenen Wochen tatsächlich unmittelbar aufeinanderfolgen (siehe computeOutcomeTrend/
+    // isoWeekLabelToMonday) — sonst ehrlich benennen, dass dazwischen Wochen ausgelassen wurden.
+    const compareLabel = trend.isConsecutive
+      ? "Verglichen mit der Vorwoche"
+      : "Verglichen mit deinem letzten Eintrag (dazwischen wurden Wochen ausgelassen)";
+    html += `<div class="progress-row" style="margin-top:8px;">${compareLabel}: ${trend.direction} · Verlauf: ${trend.sequence}</div>`;
+  }
+  content.innerHTML = html;
+  if (existing === undefined){
+    const optWrap = document.getElementById("outcome-options");
+    // Gleiches Icon-Set wie der Ebenen-Check-in (seit v0.33) — dieselbe 10/30/50/70/90-Skala.
+    optWrap.innerHTML = Object.entries(OUTCOME_LABELS).map(([val, label]) =>
+      `<button class="opt-btn" type="button" data-outcome-value="${val}">${FACE_ICONS[val]}<span class="opt-label">${label}</span></button>`
+    ).join("");
+    optWrap.querySelectorAll("[data-outcome-value]").forEach(btn => {
+      btn.addEventListener("click", () => setWeekOutcome(targetWeek, parseInt(btn.dataset.outcomeValue, 10)));
+    });
+  } else {
+    document.getElementById("btn-outcome-change").addEventListener("click", () => {
+      delete weeklyOutcomes[targetWeek];
+      saveOutcomes();
+      renderOutcome();
+    });
+  }
+}
+
 function resetAllData(){
   try {
     localStorage.removeItem(STORAGE_KEYS.weights);
     localStorage.removeItem(STORAGE_KEYS.history);
     localStorage.removeItem(STORAGE_KEYS.reflections);
+    localStorage.removeItem(STORAGE_KEYS.outcomes);
+    localStorage.removeItem(STORAGE_KEYS.moodWeights); // seit v0.40
+    localStorage.removeItem(STORAGE_KEYS.moodXP);       // seit v0.40
   } catch (e) { /* ignore */ }
   INTERVENTIONS.forEach(iv => weights[iv.id] = 1.0);
   sessionLog = [];
   dailyReflections = {};
+  weeklyOutcomes = {};
+  MOOD_OPTIONS.forEach(m => { moodWeights[m.key] = {}; moodXP[m.key] = 0; }); // seit v0.40
   renderHistory();
   renderProgress();
   renderDayClose();
+  renderOutcome();
 }
 
 // ---- Lernsystem: Gewichtung pro Intervention (jetzt persistent über localStorage) ----
 const weights = loadWeights();
 let dailyReflections = loadReflections(); // { "YYYY-MM-DD": "held" | "bent" }
+let weeklyOutcomes = loadOutcomes(); // { "YYYY-Www": 10|30|50|70|90 } — seit v0.31, siehe renderOutcome()
+let moodWeights = loadMoodWeights(); // seit v0.40: pro Emoji ein eigener, unabhängiger Skilltree, siehe dort
+let moodXP = loadMoodXP(); // seit v0.40: sichtbarer Fortschritt pro Emoji, siehe computeMoodLevel()
 
 // ---- App-Status --------------------------------------------
 let answers = {};          // { tierId: score }
@@ -1082,6 +1863,17 @@ let currentTierId = null;  // aktuell adressierte Ebene
 let currentIntervention = null;
 let currentDepth = null;   // aufgelöster Inhalt (Basis- oder vertiefte Stufe), siehe resolveDepth() weiter unten
 let gatekeeperReason = null; // "tier0" | "tier0_chronic" | "tier1" | "tier1_chronic" | "tier2" | "tier2_chronic" | null
+let disruptionActive = false; // seit v0.30: computeChronicDisruption() — "gerade ist viel los", ohne WAS zu kennen
+let entryMood = null; // gewähltes MOOD_OPTIONS-Element oder null — Rahmung IMMER, Auswahl seit v0.40 (siehe dort). Seit v0.39 aus MOOD_KEY vorbefüllt (siehe Bootstrap), bleibt bis zur nächsten manuellen Änderung bestehen
+// Cycle-Snapshot (seit v0.40) — wird in advanceCheckin() für GENAU DIESEN Zyklus festgelegt, weil sich
+// entryMood theoretisch ändern könnte, während das Ergebnis schon angezeigt wird (Widget ist ja
+// dauerhaft erreichbar, siehe v0.39). finishFeedback()/btn-skip/logCycle() müssen wissen, WELCHES
+// Emoji (falls überhaupt) diesen konkreten Zyklus wirklich gesteuert hat, nicht was gerade jetzt im
+// Widget steht.
+let cycleMoodSelectionActive = false; // true = das Emoji hat diesen Zyklus tatsächlich die Ebene bestimmt (Gatekeeper hat nicht eingegriffen)
+let cycleMoodKey = null;              // MOOD_OPTIONS-key, falls cycleMoodSelectionActive, sonst null
+let cycleNaturalBottleneckTierId = null; // der rein rechnerische Engpass (ohne Emoji-Einfluss), rein informativ für Verlauf/Tagebuch
+let lastMoodLevelUp = null; // { moodKey, level } falls das letzte Qualia-Feedback ein Mood-Level-Up ausgelöst hat, sonst null
 
 // Verlauf über alle Sitzungen hinweg (persistent via localStorage, gedeckelt auf HISTORY_LIMIT Einträge).
 let sessionLog = loadHistory();
@@ -1095,6 +1887,72 @@ let sessionLog = loadHistory();
 const checkinList = document.getElementById("checkin-list");
 let checkinStep = 0; // Index in TIERS, 0..5
 let autoAdvanceTimer = null;
+
+// ---- 4a. Adaptiver Check-in (seit v0.27) ----------------------------------------------------
+// Julians Beobachtung nach dem Freundeskreis-Test: der Check-in stößt an eine Attraktivitätsgrenze,
+// die sich nicht durch Optik/Animation lösen lässt ("fühlt sich wie ein Fragebogen an") — die Menge
+// der aktiven Entscheidungen selbst ist das Problem. Kapitel 4 der Projekthinweise verlangt weiterhin,
+// dass JEDE der 6 Ebenen pro Zyklus abgedeckt wird — das ändert sich hier NICHT, es ändert sich nur,
+// WIE eine Ebene befüllt wird: eine Ebene, die sich über mehrere Zyklen kaum bewegt hat, wird als
+// Ein-Klick-Bestätigung ("Passt noch") statt als 5-Optionen-Frage gezeigt, mit jederzeit sichtbarem
+// "Heute anders"-Ausweg. Bewusst kein stiller Auto-Fill ohne Anzeige (Wu-Wei/Vertrauens-Prinzip) —
+// jede Ebene bleibt ein eigener, sichtbarer Schritt im Flow, nur die Interaktion selbst wird leichter.
+let checkinPlan = {};             // { tierId: {carry:true, value} | {carry:false} }, pro Zyklus einmal berechnet
+let carriedTierIds = [];          // Ebenen, die in DIESEM Zyklus per "Passt noch" bestätigt wurden
+let forcedAskOverride = new Set(); // Ebenen, bei denen "Heute anders" die Karte für DIESEN Zyklus in eine echte Frage verwandelt hat
+
+const CARRY_MIN_HISTORY = 5;       // Zyklen mit answers-Feld nötig, bevor der adaptive Modus überhaupt greift
+const CARRY_STABILITY_SAMPLES = 3; // Mindestanzahl an Werten für eine Ebene, um Stabilität zu beurteilen
+const CARRY_STABILITY_RANGE = 20;  // max. Schwankung (max-min) der letzten Werte, um als "stabil" zu gelten
+// Differenzierte Streak-Grenzen statt einer einzigen "Gatekeeper-kritisch vs. Rest"-Zweiteilung (Fix
+// aus der Sinnhaftigkeits-Prüfung nach v0.33, Befund 4): Ebene 0/1 UND Ebene 2 sind alle drei direkter
+// Eingabewert einer Gatekeeper-Regel (Regel 1/2/3, siehe applyGatekeepers) — Ebene 2 stand vorher aber
+// bei derselben laxen Grenze (3) wie die gatekeeper-irrelevanten Ebenen 3-5, obwohl sie über Regel 3
+// genauso ein Auslösewert ist. Trotzdem nicht identisch zu Ebene 0/1 behandelt: akute Erschöpfung oder
+// Stress (Ebene 0/1) können sich innerhalb von Stunden ändern, während sich soziale Verbindung/Isolation
+// (Ebene 2) typischerweise langsamer verschiebt UND Regel 3 ohnehin enger gefasst ist (greift nur, wenn
+// Ebene 5 der rohe Engpass ist, nicht bei jedem Zyklus wie Regel 1/2 potenziell). Ebene 2 bekommt deshalb
+// eine mittlere Grenze (2) statt der schnellsten (1) oder der bisherigen, zu laxen (3).
+const CARRY_MAX_STREAK = { 0:1, 1:1, 2:2, 3:3, 4:3, 5:3 };
+
+function computeCheckinPlan(){
+  const withAnswers = sessionLog.filter(e => e.answers && typeof e.answers === "object");
+  const plan = {};
+  TIERS.forEach(tier => {
+    if (withAnswers.length < CARRY_MIN_HISTORY){
+      plan[tier.id] = { carry:false };
+      return;
+    }
+    const recent = [];
+    for (const entry of withAnswers){
+      if (typeof entry.answers[tier.id] === "number") recent.push(entry.answers[tier.id]);
+      if (recent.length >= CARRY_STABILITY_SAMPLES) break; // nur die jüngsten paar Werte zählen für "stabil"
+    }
+    if (recent.length < CARRY_STABILITY_SAMPLES){
+      plan[tier.id] = { carry:false };
+      return;
+    }
+    const range = Math.max(...recent) - Math.min(...recent);
+    if (range > CARRY_STABILITY_RANGE){
+      plan[tier.id] = { carry:false };
+      return;
+    }
+    // Carry-Streak: wie viele der jüngsten Zyklen in Folge wurde diese Ebene bereits automatisch
+    // bestätigt (nicht aktiv gefragt)? Alte Einträge ohne carriedTierIds-Feld (vor v0.27) zählen als
+    // "aktiv gefragt" — sicherer Default, beendet die Serie statt sie fälschlich fortzusetzen.
+    let streak = 0;
+    for (const entry of sessionLog){
+      const carriedHere = Array.isArray(entry.carriedTierIds) && entry.carriedTierIds.includes(tier.id);
+      if (carriedHere) streak++; else break;
+    }
+    if (streak >= CARRY_MAX_STREAK[tier.id]){
+      plan[tier.id] = { carry:false };
+      return;
+    }
+    plan[tier.id] = { carry:true, value: recent[0] };
+  });
+  return plan;
+}
 
 function renderCheckinProgress(){
   const dots = TIERS.map((t, idx) => {
@@ -1132,37 +1990,66 @@ function renderCheckinStep(index, opts = {}){
   const card = document.createElement("div");
   card.className = "card checkin-step-enter";
   card.setAttribute("tabindex", "-1");
-  card.innerHTML = `
-    <div class="tier-label tier-accent-${tier.id}">Ebene ${tier.id} · ${tier.name}</div>
-    <div class="question" id="checkin-question-${tier.id}">${tier.question}</div>
-    <div class="options" data-tier="${tier.id}" role="radiogroup" aria-labelledby="checkin-question-${tier.id}"></div>
-  `;
-  const optsWrap = card.querySelector(".options");
-  tier.options.forEach(opt => {
-    const btn = document.createElement("button");
-    btn.className = "opt-btn";
-    btn.textContent = opt.label;
-    // Barrierefreiheit (seit v0.20): die Auswahl-Buttons wirken wie Radiobuttons (genau eine Wahl
-    // pro Ebene) — das war bisher rein visuell (".selected"-Klasse). role="radio"/aria-checked
-    // macht das für Screenreader-Nutzer explizit, ohne am Look&Feel etwas zu ändern.
-    btn.setAttribute("role", "radio");
-    const alreadySelected = answers[tier.id] === opt.value;
-    btn.setAttribute("aria-checked", alreadySelected ? "true" : "false");
-    if (alreadySelected) btn.classList.add("selected");
-    btn.addEventListener("click", () => {
-      answers[tier.id] = opt.value;
-      optsWrap.querySelectorAll(".opt-btn").forEach(b => {
-        b.classList.remove("selected");
-        b.setAttribute("aria-checked", "false");
-      });
-      btn.classList.add("selected");
-      btn.setAttribute("aria-checked", "true");
+
+  const plan = checkinPlan[tier.id];
+  const showCarryCard = !!(plan && plan.carry && !forcedAskOverride.has(tier.id));
+
+  if (showCarryCard){
+    // Adaptiver Check-in (seit v0.27): diese Ebene war über mehrere Zyklen stabil — Ein-Klick-
+    // Bestätigung statt 5-Optionen-Frage, mit sichtbarem Ausweg. Kein role="radiogroup" hier, das
+    // sind zwei unabhängige Aktions-Buttons, keine Auswahl unter Alternativen.
+    card.innerHTML = `
+      <div class="tier-label tier-accent-${tier.id}">Ebene ${tier.id} · ${tier.name}</div>
+      <div class="question" id="checkin-question-${tier.id}">${tier.question}</div>
+      <p class="carry-hint">In den letzten Tagen ähnlich eingeschätzt — passt das noch?</p>
+      <button class="primary-btn" id="btn-carry-confirm" type="button">Passt noch</button>
+      <button class="secondary-btn" id="btn-carry-override" type="button">Heute anders</button>
+    `;
+    checkinList.appendChild(card);
+    document.getElementById("btn-carry-confirm").addEventListener("click", () => {
+      answers[tier.id] = plan.value;
+      if (!carriedTierIds.includes(tier.id)) carriedTierIds.push(tier.id);
       updateCheckinNav();
       scheduleAutoAdvance();
     });
-    optsWrap.appendChild(btn);
-  });
-  checkinList.appendChild(card);
+    document.getElementById("btn-carry-override").addEventListener("click", () => {
+      forcedAskOverride.add(tier.id);
+      renderCheckinStep(checkinStep); // gleicher Schritt, jetzt als normale 5-Optionen-Frage
+    });
+  } else {
+    card.innerHTML = `
+      <div class="tier-label tier-accent-${tier.id}">Ebene ${tier.id} · ${tier.name}</div>
+      <div class="question" id="checkin-question-${tier.id}">${tier.question}</div>
+      <div class="options" data-tier="${tier.id}" role="radiogroup" aria-labelledby="checkin-question-${tier.id}"></div>
+    `;
+    const optsWrap = card.querySelector(".options");
+    tier.options.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.className = "opt-btn";
+      // Icon + Text (seit v0.33) statt reinem Textlabel — siehe FACE_ICONS-Kommentar weiter oben.
+      btn.innerHTML = `${FACE_ICONS[opt.value]}<span class="opt-label">${opt.label}</span>`;
+      // Barrierefreiheit (seit v0.20): die Auswahl-Buttons wirken wie Radiobuttons (genau eine Wahl
+      // pro Ebene) — das war bisher rein visuell (".selected"-Klasse). role="radio"/aria-checked
+      // macht das für Screenreader-Nutzer explizit, ohne am Look&Feel etwas zu ändern.
+      btn.setAttribute("role", "radio");
+      const alreadySelected = answers[tier.id] === opt.value;
+      btn.setAttribute("aria-checked", alreadySelected ? "true" : "false");
+      if (alreadySelected) btn.classList.add("selected");
+      btn.addEventListener("click", () => {
+        answers[tier.id] = opt.value;
+        optsWrap.querySelectorAll(".opt-btn").forEach(b => {
+          b.classList.remove("selected");
+          b.setAttribute("aria-checked", "false");
+        });
+        btn.classList.add("selected");
+        btn.setAttribute("aria-checked", "true");
+        updateCheckinNav();
+        scheduleAutoAdvance();
+      });
+      optsWrap.appendChild(btn);
+    });
+    checkinList.appendChild(card);
+  }
   renderCheckinProgress();
   updateCheckinNav();
   if (focus) card.focus();
@@ -1189,10 +2076,24 @@ function advanceCheckin(){
   if (checkinStep < TIERS.length - 1){
     renderCheckinStep(checkinStep + 1);
   } else {
+    // Seit v0.40: das gewählte Emoji liefert nur einen KANDIDATEN für die Ebene — applyGatekeepers()
+    // prüft ihn genau wie früher den rein rechnerischen Engpass und lenkt bei Bedarf ganz normal um
+    // (setzt dabei gatekeeperReason, die bestehende Erklärungs-Anzeige greift automatisch). Ohne
+    // gesetztes Emoji ist candidate === raw, also exakt das alte, unveränderte Verhalten.
     const raw = findBottleneckTier();
-    currentTierId = applyGatekeepers(raw);
-    currentIntervention = pickIntervention(currentTierId);
-    currentDepth = resolveDepth(currentIntervention);
+    const candidate = entryMood ? entryMood.tier : raw;
+    const finalTier = applyGatekeepers(candidate);
+    cycleNaturalBottleneckTierId = raw;
+    // Nur wenn der Kandidat unverändert durchkam, hat das Emoji diesen Zyklus TATSÄCHLICH gesteuert —
+    // jede Abweichung bedeutet zwingend, dass eine Gatekeeper-/Störungs-Regel eingegriffen hat (siehe
+    // applyGatekeepers()-Kommentar: sie ändert die Ebene ausschließlich, wenn eine ihrer Bedingungen
+    // zutrifft). Damit bleibt der eigene, pro Emoji unabhängige Skilltree (moodWeights) sauber auf
+    // genau die Fälle beschränkt, in denen dieses Emoji auch wirklich verantwortlich war.
+    cycleMoodSelectionActive = !!(entryMood && finalTier === entryMood.tier);
+    cycleMoodKey = cycleMoodSelectionActive ? entryMood.key : null;
+    currentTierId = finalTier;
+    currentIntervention = pickIntervention(currentTierId, cycleMoodKey);
+    currentDepth = resolveDepth(currentIntervention, cycleMoodKey);
     renderResult();
     showScreen("screen-result");
   }
@@ -1243,6 +2144,139 @@ function computeChronicMeaningDeficit(){
   return { avg, windowSize: window.length, isDeficit: avg < 30 };
 }
 
+// ---- 5a-2. Chronische Störung erkannt (v0.30) ------------------------------------
+// Erweiterung des bereits bestehenden Top-down-Kopplungs-Prinzips (siehe computeChronicMeaningDeficit
+// oben). Auslöser war Julians Frage, wie man erkennt, was gerade bei jemandem los ist (Diät,
+// Rauchentwöhnung, Trauerfall, Schwangerschaft, ...), um besser zu coachen — OHNE danach zu fragen.
+// Direktes Nachfragen wurde bewusst verworfen: Kapitel 4 der Projekt-Doku verbietet jede Form von
+// Persona-/Kategorien-Zuweisung, auch optional per Selbstauskunft, und ein neues Freitextfeld könnte
+// die App ohnehin nicht auswerten, da es kein Server-/LLM-Backend gibt — es wäre bestenfalls ein
+// privates, für die Logik wirkungsloses Journal.
+// Die Lösung bleibt deshalb strikt WAS-frei: wir leiten nur ab, DASS gerade überdurchschnittlich viel
+// los ist, nie WAS. Zwei unabhängige Signale, beide rein aus den ohnehin gespeicherten
+// sessionLog-Antworten berechnet, keine neue Abfrage:
+//
+//  A) Breite Instabilität: mehrere Ebenen gleichzeitig anhaltend niedrig (nicht nur Ebene 5 wie beim
+//     bestehenden Bedeutungs-Mangel oben) — typisch für Lebensphasen, in denen mehrere Bereiche
+//     gleichzeitig beansprucht sind (z. B. Schlaf UND Stimmung UND Energie gleichzeitig runter).
+//  B) Plötzlicher Einbruch: der Gesamt-Schnitt über alle Ebenen ist in den letzten Zyklen deutlich
+//     niedriger als der längerfristige Schnitt davor — typisch für ein akutes Ereignis (Trauerfall,
+//     Diagnose, Trennung), das die App nicht kennt und nie erfragen wird.
+//
+// Wie bei computeChronicMeaningDeficit gilt das gleiche Vorsichtsprinzip: erst ab einer Mindest-Historie
+// aktiv, sonst bei wenig Daten unzuverlässig bzw. zufällig.
+function computeChronicDisruption(){
+  const withAnswers = sessionLog.filter(e => e.answers && typeof e.answers === "object" &&
+    TIERS.every(t => typeof e.answers[t.id] === "number"));
+
+  const MIN_ENTRIES_WIDE = 10;
+  let wideInstability = false;
+  if (withAnswers.length >= MIN_ENTRIES_WIDE){
+    const window = withAnswers.slice(0, 20); // jüngste zuerst, gleiches Fensterprinzip wie oben
+    const lowTierCount = TIERS.filter(t => {
+      const avg = window.reduce((sum, e) => sum + e.answers[t.id], 0) / window.length;
+      return avg < 30;
+    }).length;
+    wideInstability = lowTierCount >= 3; // mindestens die Hälfte der sechs Ebenen betroffen
+  }
+
+  const MIN_ENTRIES_DROP = 15;
+  const RECENT_N = 5;
+  const BASELINE_N = 10;
+  let suddenDrop = false;
+  if (withAnswers.length >= MIN_ENTRIES_DROP){
+    const overallAvg = entry => TIERS.reduce((sum, t) => sum + entry.answers[t.id], 0) / TIERS.length;
+    const recent = withAnswers.slice(0, RECENT_N);
+    const baseline = withAnswers.slice(RECENT_N, RECENT_N + BASELINE_N);
+    const recentAvg = recent.reduce((sum, e) => sum + overallAvg(e), 0) / recent.length;
+    const baselineAvg = baseline.reduce((sum, e) => sum + overallAvg(e), 0) / baseline.length;
+    suddenDrop = (baselineAvg - recentAvg) > 20;
+  }
+
+  return { isDisrupted: wideInstability || suddenDrop, wideInstability, suddenDrop };
+}
+
+// ---- 5a-3. Personalisierte Gatekeeper-Empfindlichkeit (v0.32) --------------------------------
+// Zweiter Teil derselben Architektur-Selbstkritik wie die Wirkungsmessung oben (siehe v0.31): die
+// Gewichtung (`weights`) lernt längst individuell pro Person, welche Intervention hilft — aber die
+// drei Gatekeeper-Schwellen (30/10/10 bzw. 40/30/30 bei chronischem Bedeutungs-Mangel) waren bisher für
+// ALLE Nutzer:innen identisch und aus der Theorie abgeleitet, nie an echtem Verhalten kalibriert. Das
+// widerspricht dem eigenen Individualisierungsprinzip (Projekthinweise Kapitel 4): der einzige Teil des
+// Systems, der nicht lernt, war ausgerechnet der Teil, der am stärksten in den Tagesablauf eingreift.
+//
+// Lösung: dieselbe Lern-Logik wie bei `weights` (Qualia-Feedback verschiebt einen Wert graduell), aber
+// angewendet auf einen Empfindlichkeits-Multiplikator PRO REGEL statt pro Intervention. Die Grunddaten
+// dafür existieren bereits vollständig in sessionLog (`entry.gatekeeper`, `entry.qualiaClass`) — es
+// brauchte keine neue Abfrage, nur eine neue Auswertung der ohnehin gespeicherten Historie.
+//
+// Funktionsweise: für jede Regel (tier0/tier1/tier2, "_chronic"-Variante zählt zur selben Grundregel)
+// wird geschaut, wie sich Zyklen, in denen GENAU DIESE Regel ausgelöst hat, im Nachhinein angefühlt
+// haben (besser/schlechter/gleich). Fühlten sie sich historisch überwiegend besser an, war die
+// Umlenkung für diese Person offenbar richtig -> die Regel wird für sie ETWAS empfindlicher (löst
+// künftig etwas leichter aus). Fühlten sie sich überwiegend schlechter/gleich an, war die Umlenkung
+// möglicherweise nicht die richtige Antwort für genau diese Person -> die Regel wird etwas
+// zurückhaltender. Bounded auf [0.7, 1.3] (analog zum bestehenden Gewichts-Clamp [0.2, 3.0]) — die
+// Regel kann sich dadurch spürbar, aber nie extrem verschieben; sie bleibt immer eine echte
+// Sicherheitsgrenze, nie ganz abschaltbar.
+//
+// Ehrlicher Vorbehalt (siehe Diskussion vor v0.31/v0.32): dieses Signal stützt sich auf dieselbe
+// Qualia-Frage direkt nach der Handlung, die auch bei `weights` anfällig für Verzerrung ist (siehe
+// v0.31-Kommentar). Es behebt also NICHT die erste Kritik (fehlende unverzerrte Wirkungsmessung) —
+// das übernimmt die wöchentliche Wirkungsmessung aus v0.31. Es behebt gezielt die zweite Kritik: dass
+// die Regel für alle Menschen identisch war, obwohl der Rest des Systems längst individuell lernt.
+//
+// Braucht mindestens MIN_SAMPLES ausgelöste UND beantwortete Zyklen pro Regel, bevor überhaupt von der
+// neutralen 1.0 abgewichen wird (gleiches Vorsichtsprinzip wie überall sonst in diesem Abschnitt) —
+// vorher entspricht das Verhalten exakt den bisherigen festen Schwellen, keine Verhaltensänderung ohne
+// ausreichend Grundlage.
+//
+// WICHTIGE SICHERHEITS-EINSCHRÄNKUNG (`minSensitivity`-Parameter): Regel 1 (Tier 0) hat eine Basis-
+// Schwelle (30 bzw. 40), die deutlich über dem extremsten Antwortwert der Skala (10) liegt — selbst bei
+// minimaler Empfindlichkeit (0.7×) triggert sie beim Extremwert weiterhin zuverlässig. Regel 2/3
+// (Tier 1/2) haben dagegen im NICHT-chronischen Fall eine Basis-Schwelle, die selbst bereits der
+// extremste Wert ist (10, "Kampf/Flucht/Erstarrung" bzw. "isoliert") — jede Absenkung dieser Schwelle
+// unter 1.0 würde bedeuten, dass die Regel selbst im denkbar kritischsten gemeldeten Zustand nicht mehr
+// greift. Das darf Personalisierung nicht dürfen: sie darf eine Sicherheitsregel empfindlicher machen,
+// aber nie so weit abschwächen, dass sie beim schlimmsten gemeldeten Wert versagt. Deshalb bekommen
+// Regel 2/3 eine Untergrenze von 1.0 (nur empfindlicher, nie unempfindlicher) statt der 0.7 von Regel 1.
+//
+// Präzisierung (Sinnhaftigkeits-Prüfung nach v0.33, Befund 6 — reine Kommentar-/Genauigkeits-Korrektur,
+// KEINE Verhaltensänderung): die 0.7-Untergrenze von Regel 1 wirkt sich wegen der diskreten
+// 10/30/50/70/90-Skala nur im chronischen Fall (Basis-Schwelle 40) tatsächlich aus — 40 × 0,7 = 28
+// schließt den Wert 30 ("eher müde") wieder aus, den die neutrale Schwelle 40 sonst mit einschließen
+// würde. Im NICHT-chronischen Fall (Basis-Schwelle 30) ist 0.7 dagegen faktisch wirkungslos: 30 × 0,7
+// = 21 liegt immer noch über 10, dem einzigen Wert, den die neutrale Schwelle 30 überhaupt erfasst
+// (30 selbst liegt nicht unter 30) — eine Absenkung unter 1.0 verändert dort also nichts am tatsächlichen
+// Auslöseverhalten. Kein Sicherheitsproblem (es wird nichts schwächer als vorgesehen), nur eine bisher
+// ungenaue Beschreibung des tatsächlichen Effekts.
+function computeGatekeeperSensitivity(ruleKey, minSensitivity = 0.7){
+  return computeGatekeeperSensitivityDetail(ruleKey, minSensitivity).value;
+}
+
+// Transparenz-Erweiterung (Sinnhaftigkeits-Prüfung nach v0.33, Befund 3): computeGatekeeperSensitivity()
+// gab bisher nur die reine Zahl zurück — für die neue Anzeige unter "Erweiterte Optionen" (siehe
+// renderSensitivityTable()) braucht es zusätzlich, ob der Wert noch neutral ist und auf wie vielen
+// Zyklen er beruht. Eigene Detail-Funktion statt Umbau der Signatur, damit die drei bestehenden
+// Aufrufstellen in applyGatekeepers() unverändert bleiben (weiterhin nur die Zahl bekommen).
+function computeGatekeeperSensitivityDetail(ruleKey, minSensitivity = 0.7){
+  const MIN_SAMPLES = 5;
+  const WINDOW = 20;
+  const matching = sessionLog.filter(e =>
+    (e.gatekeeper === ruleKey || e.gatekeeper === ruleKey + "_chronic") &&
+    (e.qualiaClass === "better" || e.qualiaClass === "worse" || e.qualiaClass === "same")
+  );
+  if (matching.length < MIN_SAMPLES){
+    // zu wenig Grundlage -> unverändertes, festes Verhalten
+    return { value: 1.0, sampleCount: matching.length, minSamples: MIN_SAMPLES, isNeutral: true };
+  }
+  const window = matching.slice(0, WINDOW); // jüngste zuerst, gleiches Fensterprinzip wie im ganzen Abschnitt
+  const score = e => e.qualiaClass === "better" ? 1 : e.qualiaClass === "worse" ? -1 : 0;
+  const avgScore = window.reduce((sum, e) => sum + score(e), 0) / window.length;
+  const raw = 1 + avgScore * 0.3;
+  const value = Math.max(minSensitivity, Math.min(1.3, raw));
+  return { value, sampleCount: matching.length, minSamples: MIN_SAMPLES, isNeutral: false };
+}
+
 // Alle drei Regeln aus Kapitel IV der Projekt-Doku, jetzt aktiv (vorher nur Regel 1 — Best-Practice-
 // Prinzip #3 sah vor, erst eine Regel zu bewähren, bevor weitere dazukommen).
 // Kein neues Check-in-Feld nötig: der jeweils EXTREMSTE Wert (10) einer Ebene wird als der in Kapitel IV
@@ -1270,7 +2304,10 @@ function applyGatekeepers(bottleneckTier){
   // niedriger Biologie weiterhin sinnvoll bzw. sogar hilfreich (Bewegung, Oxytocin/Ko-Regulation);
   // nur Deep-Work-artiger Fokus (Tier 3) braucht die Energie, die gerade fehlt.
   // Schwelle normal 30, bei nachgewiesenem chronischen Bedeutungs-Mangel auf 40 angehoben (seit v0.18).
-  const bio0Threshold = isChronic ? 40 : 30;
+  // Seit v0.32 zusätzlich mit einer personalisierten Empfindlichkeit multipliziert (siehe
+  // computeGatekeeperSensitivity oben) — ohne ausreichend eigene Historie bleibt der Multiplikator 1.0
+  // und die Schwelle exakt wie zuvor.
+  const bio0Threshold = (isChronic ? 40 : 30) * computeGatekeeperSensitivity("tier0");
   if (answers[0] < bio0Threshold && tier === 3){
     // Nur als "chronisch" kennzeichnen (andere Erklärung im UI), wenn die Ausweitung selbst den
     // Unterschied gemacht hat — bei answers[0] < 30 hätte Regel 1 ohnehin gegriffen, keine zusätzliche
@@ -1283,7 +2320,10 @@ function applyGatekeepers(bottleneckTier){
   // Normal nur beim Extremwert (10, "sehr angespannt/gestresst"); bei chronischem Bedeutungs-Mangel
   // bereits ab "eher unruhig" (30) — chronisch erhöhte Cortisol-Last senkt laut Psychoneuroimmunologie
   // die Schwelle, ab der ein moderater Stresswert tatsächlich schon kritisch ist (seit v0.21).
-  const tier1Threshold = isChronic ? 30 : 10;
+  // Seit v0.32 ebenfalls personalisiert multipliziert (siehe computeGatekeeperSensitivity oben) — mit
+  // Untergrenze 1.0 statt 0.7, da die Basis-Schwelle hier bereits der extremste Skalenwert ist (siehe
+  // Sicherheits-Kommentar dort): darf empfindlicher werden, nie unempfindlicher.
+  const tier1Threshold = (isChronic ? 30 : 10) * computeGatekeeperSensitivity("tier1", 1.0);
   if (answers[1] <= tier1Threshold && (tier === 4 || tier === 5)){
     gatekeeperReason = (isChronic && answers[1] > 10) ? "tier1_chronic" : "tier1";
     tier = 1;
@@ -1293,10 +2333,29 @@ function applyGatekeepers(bottleneckTier){
   // Gleiche Erweiterung analog zu Regel 2 (seit v0.21): normal nur beim Extremwert 10, bei chronischem
   // Bedeutungs-Mangel bereits ab "eher distanziert" (30) — geringere soziale Pufferkapazität macht auch
   // moderate Distanz zum relevanten Hindernis für Sinn-Integration.
-  const tier2Threshold = isChronic ? 30 : 10;
+  // Seit v0.32 ebenfalls personalisiert multipliziert, gleiche Untergrenze 1.0 wie Regel 2 (siehe dort).
+  const tier2Threshold = (isChronic ? 30 : 10) * computeGatekeeperSensitivity("tier2", 1.0);
   if (answers[2] <= tier2Threshold && tier === 5){
     gatekeeperReason = (isChronic && answers[2] > 10) ? "tier2_chronic" : "tier2";
     tier = 2;
+  }
+
+  // Vierte, additive Kopplung (v0.30, siehe computeChronicDisruption oben): überschreibt
+  // gatekeeperReason bewusst NICHT, damit eine bereits aktive Regel-1/2/3-Erklärung im UI sichtbar
+  // bleibt (die beiden Mechanismen sind orthogonal) — disruptionActive wird separat in renderResult()
+  // als eigener, wertungsfreier Hinweis angezeigt, ohne die spezifische Ursache zu benennen oder zu
+  // erfragen.
+  const disruption = computeChronicDisruption();
+  disruptionActive = disruption.isDisrupted;
+  if (disruptionActive && tier > 2){
+    // Fundament (Ebene 0-2) statt der ursprünglich ermittelten höheren Ebene — der niedrigste Wert der
+    // drei gewinnt, konsistent mit dem Tie-Breaking-Prinzip aus findBottleneckTier() weiter unten.
+    let foundationTier = 0;
+    let foundationValue = answers[0];
+    for (const id of [1, 2]){
+      if (answers[id] < foundationValue){ foundationValue = answers[id]; foundationTier = id; }
+    }
+    tier = foundationTier;
   }
 
   return tier;
@@ -1329,7 +2388,11 @@ function renderGreeting(){
   document.getElementById("context-greeting").textContent = `${ctx.greeting} · ${ctx.weekdayLabel}`;
 }
 
-function pickIntervention(tierId){
+// moodKey (seit v0.40, optional): wenn gesetzt, wird ausschließlich der unabhängige Mood-Skilltree
+// dieses Emojis (moodWeights[moodKey]) für die Gewichtung verwendet statt des globalen `weights` —
+// siehe advanceCheckin(), das moodKey nur dann übergibt, wenn dieses Emoji den Zyklus tatsächlich
+// gesteuert hat (cycleMoodSelectionActive). TIME_BONUS/bestTime-Logik bleibt für beide Fälle identisch.
+function pickIntervention(tierId, moodKey){
   const pool = INTERVENTIONS.filter(iv => iv.tier === tierId);
   const ctx = getTimeContext();
   // War 2.5, dadurch z.B. an Wochenenden bei nur 4 Ebene-5-Interventionen (nur eine davon
@@ -1339,8 +2402,20 @@ function pickIntervention(tierId){
   // bleibt statt faktischer Dominanz, gerade bei kleinen Ebenen-Pools.
   const TIME_BONUS = 1.5;
 
+  // Diversitäts-Dämpfung (Sinnhaftigkeits-Prüfung nach v0.33, Befund 1): `weights[id]` selbst reicht
+  // von 0.2 bis 3.0 (Spannweite 15×) — deutlich mehr als der 2,5×-TIME_BONUS, der in v0.11 exakt wegen
+  // "es kommt überwiegend derselbe Vorschlag" auf 1,5× reduziert wurde. Ohne Dämpfung kann bei kleinen
+  // Ebenen-Pools eine einzelne, positiv bewertete Intervention auf 40-75%+ Auswahlwahrscheinlichkeit
+  // kommen — dasselbe Symptom wie beim TIME_BONUS-Bug, nur über die größere Stellschraube. Quadratwurzel
+  // staucht die Spannweite auf rund 3,9× (√0,2 ≈ 0,45 bis √3,0 ≈ 1,73), OHNE die Rangfolge zu verändern:
+  // eine gelernte Präferenz bleibt spürbar häufiger, dominiert aber nicht mehr fast vollständig. Bewusst
+  // NUR hier (Auswahlwahrscheinlichkeit) angewendet — das rohe `weights[id]`/`moodWeights` bleibt für
+  // Persistenz, Anzeige (Erweiterte Optionen) und den Skilltree-Schwellenwert (DEEPEN_THRESHOLD,
+  // resolveDepth()) unverändert, da dieser Wert als "wie eingespielt ist diese Intervention" gelesen
+  // wird, nicht als Auswahlwahrscheinlichkeit.
   function effectiveWeight(iv){
-    let w = weights[iv.id];
+    const baseWeight = moodKey ? getMoodWeight(moodKey, iv.id) : weights[iv.id];
+    let w = Math.sqrt(baseWeight);
     if (iv.bestTime === "any") return w;
     if (iv.bestTime === "weekend") return ctx.isWeekend ? w * TIME_BONUS : w;
     // morning/evening/midday: leicht bevorzugen, wenn Tageszeit ungefähr passt (Vormittag zählt noch als
@@ -1362,28 +2437,148 @@ function pickIntervention(tierId){
 }
 
 // ---- 5c. Interner Skilltree: Vorschläge, die mit der Person mitwachsen (seit v0.15) ---------------
-// Julians Auftrag: "einen umfassenden Skilltree als Grundlage für die Handlungsempfehlungen
-// implementieren". Bewusst KEIN sichtbarer Baum, keine Freischaltungs-Screens, kein XP — das hätte
-// die Gamification-Grenze verletzt, die wir uns beim v8-Audit (v0.3/v0.13) bewusst gesetzt hatten
-// (Julians eigene Entscheidung in der Klärungsfrage zu diesem Feature: "Interner Skilltree").
-// Stattdessen: manche Interventionen haben jetzt zusätzlich zur Basis-Stufe eine `deepen`-Stufe
+// Julians ursprünglicher Auftrag: "einen umfassenden Skilltree als Grundlage für die
+// Handlungsempfehlungen implementieren". Bewusst KEIN sichtbarer Baum, keine Freischaltungs-Screens,
+// kein XP — das hätte damals die Gamification-Grenze verletzt, die wir uns beim v8-Audit (v0.3/v0.13)
+// bewusst gesetzt hatten (Julians eigene Entscheidung in der Klärungsfrage zu diesem Feature:
+// "Interner Skilltree"). Manche Interventionen haben zusätzlich zur Basis-Stufe eine `deepen`-Stufe
 // (gleicher Titel, etwas mehr Dauer/Tiefe — aus v8s Anfänger→Expert-Leitern destilliert, aber ohne
 // die dortigen 4 Stufen und ohne Punkte). Sichtbar bleibt weiterhin PRO ZYKLUS GENAU EIN Vorschlag.
 //
 // Der Auslöser für die tiefere Stufe ist bewusst KEIN neuer Zähler, sondern das ohnehin longitudinal
-// gelernte `weights[id]` — das steigt nur durch wiederholtes "hat geholfen"-Feedback für GENAU diese
-// Intervention (siehe finishFeedback). Ein hohes Gewicht heißt also bereits "das hier funktioniert
-// gut für diese Person" — exakt das Signal, das laut Flow-Theorie (Blueprint, Tier 4: "bewusste
-// Wiederholung") auch für eine passende Herausforderungs-Anpassung gebraucht wird. Kein zusätzlicher
-// Speicher, keine neue Zahl, die die Person je zu Gesicht bekommt.
-const DEEPEN_THRESHOLD = 2.0; // ab hier gilt eine Intervention für diese Person als eingespielt
+// gelernte `weights[id]` (oder, seit v0.40, `moodWeights[moodKey][id]`) — das steigt nur durch
+// wiederholtes "hat geholfen"-Feedback für GENAU diese Intervention (siehe finishFeedback). Ein hohes
+// Gewicht heißt also bereits "das hier funktioniert gut", exakt das Signal, das laut Flow-Theorie
+// (Blueprint, Tier 4: "bewusste Wiederholung") auch für eine passende Herausforderungs-Anpassung
+// gebraucht wird.
+//
+// v0.40: das "kein XP"-Prinzip oben ist für den GLOBALEN Skilltree weiterhin unverändert gültig. Für
+// den NEUEN, pro Emoji unabhängigen Mood-Skilltree hat Julian ein sichtbares XP/Level explizit
+// angefordert (siehe moodXP/computeMoodLevel weiter oben) — eine bewusste, hier dokumentierte
+// Ausnahme von der ursprünglichen "kein Punktesystem"-Entscheidung, nicht deren stille Aufweichung.
+const DEEPEN_THRESHOLD = 2.0; // ab hier gilt eine Intervention für diese Person (bzw. für dieses Emoji) als eingespielt
 
-function resolveDepth(iv){
-  const eligible = iv.deepen && weights[iv.id] >= DEEPEN_THRESHOLD;
+// moodKey (seit v0.40, optional): siehe pickIntervention() — dieselbe Umschaltung zwischen globalem
+// und Mood-spezifischem Gewicht, hier für die Vertiefungs-Entscheidung statt der Auswahlwahrscheinlichkeit.
+function resolveDepth(iv, moodKey){
+  const baseWeight = moodKey ? getMoodWeight(moodKey, iv.id) : weights[iv.id];
+  const eligible = iv.deepen && baseWeight >= DEEPEN_THRESHOLD;
   if (eligible){
     return { title: iv.title, action: iv.deepen.action, steps: iv.deepen.steps, variation: iv.variation, deepened: true };
   }
   return { title: iv.title, action: iv.action, steps: iv.steps, variation: iv.variation, deepened: false };
+}
+
+// ---- 5b. Stimmungs-Widget rendern (seit v0.39, ersetzt den gated Screen aus v0.38) -------------
+// Dauerhaft sichtbares Feld oben rechts im Header (Header liegt außerhalb von main/.screen, ist also
+// auf jedem Screen sichtbar) statt eines einmaligen Zwischen-Screens vor dem Check-in. Julian: die
+// Stimmung soll "jederzeit geändert werden" können. Popover-Optionen sind eine statische Liste
+// (MOOD_OPTIONS ändert sich nie) — einmal beim Bootstrap gebaut, nicht bei jeder Öffnung neu.
+function saveMood(){
+  try {
+    if (entryMood) { localStorage.setItem(MOOD_KEY, entryMood.key); }
+    else { localStorage.removeItem(MOOD_KEY); }
+  } catch (e) { /* ignore */ }
+}
+function loadMood(){
+  try {
+    const key = localStorage.getItem(MOOD_KEY);
+    return key ? (MOOD_OPTIONS.find(m => m.key === key) || null) : null;
+  } catch (e) { return null; }
+}
+function updateMoodWidgetButton(){
+  const btn = document.getElementById("mood-widget-btn");
+  const emojiEl = document.getElementById("mood-widget-emoji");
+  if (entryMood){
+    emojiEl.textContent = entryMood.emoji;
+    btn.classList.add("is-set");
+    btn.setAttribute("aria-label", `Stimmung: ${entryMood.label}. Zum Ändern tippen.`);
+  } else {
+    emojiEl.textContent = "+";
+    btn.classList.remove("is-set");
+    btn.setAttribute("aria-label", "Stimmung wählen");
+  }
+}
+function markMoodPopoverSelection(){
+  document.querySelectorAll("#mood-popover-options button").forEach(b => {
+    const isSelected = !!(entryMood && b.dataset.moodKey === entryMood.key);
+    b.classList.toggle("selected", isSelected);
+    b.setAttribute("aria-checked", isSelected ? "true" : "false");
+  });
+}
+function openMoodPopover(){
+  document.getElementById("mood-popover").hidden = false;
+  document.getElementById("mood-widget-btn").setAttribute("aria-expanded", "true");
+}
+function closeMoodPopover(){
+  document.getElementById("mood-popover").hidden = true;
+  document.getElementById("mood-widget-btn").setAttribute("aria-expanded", "false");
+}
+// Mood-Skilltree-Level im Popover (seit v0.40): pro Emoji-Button ein ruhiger "Lv N"-Hinweis, der
+// zeigt, wie eingespielt der eigene Skilltree dieses Emojis schon ist — sichtbarer Fortschritt, wie
+// von Julian gewünscht, aber bewusst als schlichte Zahl statt Balken/Konfetti/Badge-Grafik.
+function updateMoodPopoverLevels(){
+  MOOD_OPTIONS.forEach(m => {
+    const el = document.querySelector(`#mood-popover-options [data-mood-key="${m.key}"] .mood-popover-level`);
+    if (el) el.textContent = `Lv ${computeMoodLevel(moodXP[m.key] || 0)}`;
+  });
+}
+// Cluster-Gruppierung im Popover (seit v0.43-Nachschärfung): das `cluster`-Feld (energetic/calm,
+// siehe MOOD_OPTIONS-Kommentar) trieb bisher nur das unsichtbare Cross-Learning — für die Person
+// selbst blieb die Gruppierung unsichtbar, obwohl sie das mentale Modell direkt widerspiegeln könnte
+// ("diese Stimmungen lernen ein bisschen voneinander"). Rein visuelle Gruppierung, keine neue Logik:
+// dieselben 15 Buttons, nur mit einer kleinen Zwischenüberschrift pro Cluster statt einer einzigen
+// undifferenzierten Liste.
+const MOOD_CLUSTER_LABELS = { energetic: "Energiegeladen", calm: "Ruhig" };
+const MOOD_CLUSTER_ORDER = ["energetic", "calm"];
+
+function renderMoodWidget(){
+  const widgetBtn = document.getElementById("mood-widget-btn");
+  const popover = document.getElementById("mood-popover");
+  const wrap = document.getElementById("mood-popover-options");
+  wrap.innerHTML = MOOD_CLUSTER_ORDER.map(cluster => {
+    const label = `<div class="mood-popover-group-label">${MOOD_CLUSTER_LABELS[cluster] || cluster}</div>`;
+    const buttons = MOOD_OPTIONS.filter(m => m.cluster === cluster).map(m =>
+      `<button type="button" data-mood-key="${m.key}" role="menuitemradio" aria-checked="false"><span aria-hidden="true">${m.emoji}</span><span class="mood-popover-label">${m.label}</span><span class="mood-popover-level"></span></button>`
+    ).join("");
+    return label + buttons;
+  }).join("");
+  updateMoodPopoverLevels();
+  wrap.querySelectorAll("[data-mood-key]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      entryMood = MOOD_OPTIONS.find(m => m.key === btn.dataset.moodKey);
+      saveMood();
+      updateMoodWidgetButton();
+      markMoodPopoverSelection();
+      closeMoodPopover();
+      widgetBtn.focus();
+    });
+  });
+  widgetBtn.addEventListener("click", () => {
+    if (popover.hidden) { openMoodPopover(); } else { closeMoodPopover(); }
+  });
+  document.getElementById("btn-mood-clear").addEventListener("click", () => {
+    entryMood = null;
+    saveMood();
+    updateMoodWidgetButton();
+    markMoodPopoverSelection();
+    closeMoodPopover();
+    widgetBtn.focus();
+  });
+  // Außerhalb-Klick und Escape schließen das Popover — gleiche Erwartung wie bei jedem Dropdown/Menü,
+  // nötig, weil das Widget jetzt auf jedem Screen erreichbar ist, nicht nur einem eigenen Screen.
+  document.addEventListener("click", (e) => {
+    if (popover.hidden) return;
+    if (popover.contains(e.target) || widgetBtn.contains(e.target)) return;
+    closeMoodPopover();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !popover.hidden){
+      closeMoodPopover();
+      widgetBtn.focus();
+    }
+  });
+  markMoodPopoverSelection();
 }
 
 // ---- 6. Screens wechseln --------------------------------------
@@ -1416,11 +2611,37 @@ function renderResult(){
   gk.innerHTML = gatekeeperReason
     ? `<div class="gatekeeper">${GATEKEEPER_MESSAGES[gatekeeperReason]}</div>`
     : "";
+  // Seit v0.30: eigener, von gatekeeperReason unabhängiger Hinweis (siehe computeChronicDisruption) —
+  // bewusst ohne jede Vermutung über die konkrete Ursache, nur die wertfreie Beobachtung selbst.
+  const dn = document.getElementById("disruption-note");
+  dn.innerHTML = disruptionActive
+    ? `<div class="disruption-note">Es wirkt, als wäre bei dir gerade mehr los als sonst. Wir halten es heute bewusst einfach.</div>`
+    : "";
   // className statt nur textContent gesetzt (seit v0.25): #result-tier-label wird zwischen Zyklen
   // wiederverwendet, die Ebenen-Farbklasse muss also bei jedem Ergebnis neu zugewiesen werden.
   const resultTierLabel = document.getElementById("result-tier-label");
   resultTierLabel.className = `tier-label tier-accent-${tier.id}`;
   resultTierLabel.textContent = `Schwächstes Glied: Ebene ${tier.id} · ${tier.name}`;
+  // Eingangs-Stimmung: Rahmungssatz wird IMMER gezeigt, wenn ein Emoji gesetzt ist — unabhängig davon,
+  // ob es diesen Zyklus tatsächlich die Ebene mitbestimmt hat (siehe cycleMoodSelectionActive) oder ob
+  // die Gatekeeper-Sicherheitslogik es übersteuert hat (seit v0.40, siehe MOOD_OPTIONS-Kommentar).
+  const moodFramingEl = document.getElementById("result-mood-framing");
+  if (entryMood){
+    moodFramingEl.textContent = entryMood.framing;
+    moodFramingEl.style.display = "";
+  } else {
+    moodFramingEl.textContent = "";
+    moodFramingEl.style.display = "none";
+  }
+  // Mood-Override-Transparenz (seit v0.40): entryMood ist gesetzt, hat den Zyklus aber NICHT gesteuert
+  // — das kann laut advanceCheckin() nur bedeuten, dass eine Gatekeeper-/Störungs-Regel eingegriffen
+  // hat (gatekeeperReason ist in diesem Fall garantiert gesetzt, siehe applyGatekeepers()). Gleiches
+  // Transparenz-Prinzip wie bei .gatekeeper/.disruption-note: nie stillschweigend etwas anderes tun als
+  // erwartet, ohne es zu erklären.
+  const mon = document.getElementById("mood-override-note");
+  mon.innerHTML = (entryMood && !cycleMoodSelectionActive)
+    ? `<div class="mood-override-note">${entryMood.emoji} ${entryMood.label} wollte heute Ebene ${entryMood.tier} vorschlagen — der Sicherheits-Vorrang oben hatte aber Vorrang, deshalb kommt der Vorschlag stattdessen von dort.</div>`
+    : "";
   // currentDepth statt currentIntervention direkt: liefert entweder die Basis- oder die vertiefte
   // Stufe (siehe resolveDepth, seit v0.15) — der Titel bleibt in beiden Fällen gleich, nur Handlung/
   // Schritte unterscheiden sich. Die "Vertiefung"-Markierung ist bewusst nüchtern gehalten (gleicher
@@ -1429,6 +2650,12 @@ function renderResult(){
     currentDepth.title + (currentDepth.deepened ? `<span class="tag">Vertiefung</span>` : "");
   document.getElementById("result-action").textContent = currentDepth.action;
   document.getElementById("result-why").textContent = TIER_WHY[tier.id];
+  // Hashtags (seit v0.41) — kommen immer von currentIntervention, nicht von currentDepth: die
+  // vertiefte Stufe (siehe resolveDepth) ändert nur Handlung/Schritte, das Thema der Aufgabe selbst
+  // bleibt in Basis- und vertiefter Stufe identisch.
+  const tagsEl = document.getElementById("result-tags");
+  tagsEl.innerHTML = (currentIntervention.tags || [])
+    .map(t => `<span class="tag-chip">#${t}</span>`).join("");
 
   const stepsList = document.getElementById("result-steps");
   stepsList.innerHTML = (currentDepth.steps || []).map(s => `<li>${s}</li>`).join("");
@@ -1452,9 +2679,19 @@ document.getElementById("btn-done").addEventListener("click", (e) => {
   setTimeout(() => { showScreen("screen-feedback"); }, delay);
 });
 document.getElementById("btn-skip").addEventListener("click", () => {
-  // Wu-Wei-Prinzip: kein Druck, nur leichte Anpassung der Gewichtung, kein Feedback-Screen nötig
-  weights[currentIntervention.id] = Math.max(0.2, weights[currentIntervention.id] - 0.15);
-  saveWeights();
+  // Wu-Wei-Prinzip: kein Druck, nur leichte Anpassung der Gewichtung, kein Feedback-Screen nötig.
+  // Seit v0.40: gleiche Verzweigung wie überall sonst — lief die Auswahl über ein Emoji, wird dessen
+  // eigener Mood-Skilltree angepasst, sonst weiterhin das globale `weights`. Kein XP-Effekt beim
+  // Überspringen (nur "besser"-Feedback gibt XP, siehe finishFeedback()).
+  const id = currentIntervention.id;
+  if (cycleMoodSelectionActive){
+    setMoodWeight(cycleMoodKey, id, Math.max(0.2, getMoodWeight(cycleMoodKey, id) - 0.15));
+    saveMoodWeights();
+  } else {
+    weights[id] = Math.max(0.2, weights[id] - 0.15);
+    saveWeights();
+  }
+  lastMoodLevelUp = null;
   logCycle({ qualiaLabel:"übersprungen", qualiaClass:"same" });
   finishCycle("Übersprungen — Gewichtung leicht reduziert, kein Druck.");
 });
@@ -1477,14 +2714,48 @@ document.querySelectorAll("[data-qualia]").forEach(btn => {
 
 function finishFeedback(){
   const id = currentIntervention.id;
-  if (qualiaChoice === 1) weights[id] = Math.min(3, weights[id] + 0.3);
-  if (qualiaChoice === -1) weights[id] = Math.max(0.2, weights[id] - 0.3);
-  // qualiaChoice === 0 -> keine Änderung
-  saveWeights();
+  // Seit v0.40: bei mood-gesteuerter Auswahl wird primär der eigene Skilltree DIESES Emojis angepasst
+  // (moodWeights), nie das globale `weights`. Seit v0.43 ZUSÄTZLICH: ein schwacher Bruchteil desselben
+  // Deltas wandert in verwandte Stimmungen (gleicher `cluster`, siehe applyMoodCrossLearning()) — kein
+  // voller Gleichlauf, nur ein leiser Lerntransfer zwischen ähnlich aktivierten Zuständen. Nur bei
+  // echtem Qualia-Feedback (nicht beim "Überspringen", das bleibt ein rein lokales, schwächeres
+  // Signal, siehe btn-skip-Handler oben).
+  if (cycleMoodSelectionActive){
+    let w = getMoodWeight(cycleMoodKey, id);
+    if (qualiaChoice === 1) w = Math.min(3, w + 0.3);
+    if (qualiaChoice === -1) w = Math.max(0.2, w - 0.3);
+    setMoodWeight(cycleMoodKey, id, w);
+    if (qualiaChoice === 1 || qualiaChoice === -1){
+      applyMoodCrossLearning(cycleMoodKey, id, qualiaChoice === 1 ? 0.3 : -0.3);
+    }
+    saveMoodWeights();
+  } else {
+    if (qualiaChoice === 1) weights[id] = Math.min(3, weights[id] + 0.3);
+    if (qualiaChoice === -1) weights[id] = Math.max(0.2, weights[id] - 0.3);
+    saveWeights();
+  }
 
-  const qualiaText = qualiaChoice === 1 ? "Es hat spürbar geholfen — Gewichtung erhöht."
-                    : qualiaChoice === -1 ? "Es hat nicht geholfen — Gewichtung gesenkt."
-                    : "Kein spürbarer Unterschied — Gewichtung bleibt gleich.";
+  let qualiaText = qualiaChoice === 1 ? "Es hat spürbar geholfen — Gewichtung erhöht."
+                  : qualiaChoice === -1 ? "Es hat nicht geholfen — Gewichtung gesenkt."
+                  : "Kein spürbarer Unterschied — Gewichtung bleibt gleich.";
+
+  // Mood-XP/Level (seit v0.40): bewusst nur bei "besser" UND nur wenn dieses Emoji den Zyklus wirklich
+  // gesteuert hat — kein Fortschritt für ein Emoji, das nur zur Rahmung diente, aber vom Gatekeeper
+  // übersteuert wurde (siehe cycleMoodSelectionActive). Kein Rückschritt bei "schlechter" (Wu-Wei:
+  // Gewichte dürfen sinken, ein einmal erreichtes Level nicht).
+  lastMoodLevelUp = null;
+  if (cycleMoodSelectionActive && qualiaChoice === 1){
+    const prevLevel = computeMoodLevel(moodXP[cycleMoodKey]);
+    moodXP[cycleMoodKey] = (moodXP[cycleMoodKey] || 0) + 1;
+    saveMoodXP();
+    const newLevel = computeMoodLevel(moodXP[cycleMoodKey]);
+    if (newLevel > prevLevel){
+      lastMoodLevelUp = { moodKey: cycleMoodKey, level: newLevel };
+      const m = MOOD_OPTIONS.find(mm => mm.key === cycleMoodKey);
+      qualiaText += ` ${m.emoji} ${m.label} ist jetzt Level ${newLevel}.`;
+    }
+    updateMoodPopoverLevels();
+  }
 
   logCycle({
     qualiaLabel: qualiaChoice === 1 ? "besser" : qualiaChoice === -1 ? "schlechter" : "gleich",
@@ -1501,12 +2772,27 @@ function logCycle({ qualiaLabel, qualiaClass }){
     isoDate: now.toISOString().slice(0, 10), // für Streak-/Tages-Berechnung, unabhängig vom Anzeigeformat
     dateLabel: now.toLocaleDateString("de-DE", { day:"2-digit", month:"2-digit" }),
     timeLabel: now.toLocaleTimeString("de-DE", { hour:"2-digit", minute:"2-digit" }),
+    timeBucket: getTimeContext().bucket, // seit v0.36, für computeBestTimeOfDay() — Alt-Einträge ohne dieses Feld werden dort einfach übersprungen
     tierName: tier.name,
     tierId: tier.id,
     title: currentIntervention.title,
+    // Seit v0.41: id + Tag-Snapshot der gewählten Intervention. Ein Snapshot statt einer reinen
+    // ID-Verweisung, damit das Emoji-Tagebuch auch dann noch korrekt anzeigt/filtert, was diese
+    // Aufgabe damals bedeutete, falls sich die Tags einer Intervention in einer künftigen Version
+    // ändern sollten — Alt-Einträge vor v0.41 haben schlicht kein tags-Feld (rückwärtskompatibel,
+    // computeTagIndex() überspringt sie einfach, wie es das Muster seit v0.36/timeBucket vorsieht).
+    interventionId: currentIntervention.id,
+    tags: [...(currentIntervention.tags || [])],
     deepened: currentDepth ? currentDepth.deepened : false,
     gatekeeper: gatekeeperReason,
     answers: { ...answers }, // Snapshot des Check-ins dieses Zyklus (seit v0.18, für computeChronicMeaningDeficit)
+    carriedTierIds: [...carriedTierIds], // welche Ebenen per "Passt noch" bestätigt statt aktiv gefragt wurden (seit v0.27)
+    // Seit v0.40, Grundlage auch für das geplante Emoji-Tagebuch (v0.41): welches Emoji war diesen
+    // Zyklus überhaupt gesetzt (unabhängig davon, ob es die Auswahl gesteuert hat), hat es die Auswahl
+    // tatsächlich gesteuert, und was wäre der rein rechnerische Engpass ohne Emoji-Einfluss gewesen.
+    entryMoodKeySelected: entryMood ? entryMood.key : null,
+    moodSelectionActive: cycleMoodSelectionActive,
+    naturalBottleneckTierId: cycleNaturalBottleneckTierId,
     qualiaLabel,
     qualiaClass
   });
@@ -1564,12 +2850,53 @@ function computeTopBottleneckTier(){
   return { tierId: tier.id, tierName: tier.name, count: topCount, windowSize: window.length };
 }
 
+// "Beste Tageszeit"-Statistik (seit v0.36) — letzter offener Punkt aus dem v0.22-Audit ("Aus dem
+// Audit, NICHT umgesetzt: 'Beste Tageszeit'-Statistik, sechs Ebenen-Erklärtexte, Radar-Chart mit
+// Sparklines"), jetzt aufgegriffen als kleiner, risikoarmer nächster Schritt in derselben Reihe wie
+// computeHelpfulRate/computeTopBottleneckTier — reine Text-Zeile, kein Chart, gleiches
+// Mindestdaten-Vorsichtsprinzip. Passt zu Julians "lebendigeres und lebensnäheres Gefühl"-Wunsch:
+// zeigt der Person ein echtes, aus ihrem eigenen Verlauf abgeleitetes Muster über sich selbst, statt
+// nur Nutzungs-Zahlen (Streak, Zyklenzahl).
+//
+// Rate statt Rohzahl pro Tageszeit-Bucket (gleiches Prinzip wie computeHelpfulRate: sonst würde die
+// Tageszeit gewinnen, zu der die App einfach am häufigsten benutzt wird, nicht die, zu der sie am
+// meisten hilft — Verwechslung von Nutzungshäufigkeit mit Wirkung, exakt die Art Fehler, die die
+// Sinnhaftigkeits-Prüfung nach v0.33 an anderer Stelle schon einmal gefunden hat). "same"-Bewertungen
+// zählen wie bei computeHelpfulRate weder zum Zähler noch zum Nenner. Ein Bucket braucht mindestens
+// MIN_PER_BUCKET eigene Einträge, bevor er überhaupt in die Wertung kommt — sonst könnte ein einzelner
+// zufälliger "besser"-Eintrag eine ganze Tageszeit fälschlich als "deine beste" auszeichnen.
+// Alt-Einträge ohne `timeBucket`-Feld (vor v0.36) werden automatisch ignoriert (kein Migrations-Schritt
+// nötig) — sie tragen einfach nicht zu keinem Bucket bei.
+function computeBestTimeOfDay(){
+  const MIN_TOTAL = 8;
+  const MIN_PER_BUCKET = 3;
+  const BUCKET_LABELS = { morning:"am Morgen", midday:"am Mittag", afternoon:"am Nachmittag", evening:"am Abend", night:"nachts" };
+  const withBucket = sessionLog.filter(e => typeof e.timeBucket === "string" && (e.qualiaClass === "better" || e.qualiaClass === "worse"));
+  if (withBucket.length < MIN_TOTAL) return null;
+  const buckets = {};
+  withBucket.forEach(e => {
+    if (!buckets[e.timeBucket]) buckets[e.timeBucket] = { better:0, total:0 };
+    buckets[e.timeBucket].total++;
+    if (e.qualiaClass === "better") buckets[e.timeBucket].better++;
+  });
+  let bestBucket = null, bestRate = -1;
+  Object.keys(buckets).forEach(bucket => {
+    const b = buckets[bucket];
+    if (b.total < MIN_PER_BUCKET) return; // zu wenig eigene Daten für diese Tageszeit, nicht werten
+    const rate = b.better / b.total;
+    if (rate > bestRate){ bestRate = rate; bestBucket = bucket; }
+  });
+  if (bestBucket === null) return null; // keine Tageszeit hat genug eigene Daten
+  return { bucket: bestBucket, label: BUCKET_LABELS[bestBucket] || bestBucket, rate: Math.round(bestRate * 100), sampleCount: buckets[bestBucket].total };
+}
+
 function renderProgress(){
   const list = document.getElementById("progress-list");
   const streak = computeStreak();
   const today = computeTodaysCount();
   const rate = computeHelpfulRate();
   const topBottleneck = computeTopBottleneckTier();
+  const bestTime = computeBestTimeOfDay();
 
   const streakText = streak <= 1
     ? "Erster Tag deiner aktuellen Serie"
@@ -1586,15 +2913,22 @@ function renderProgress(){
   if (topBottleneck !== null){
     html += `<div class="progress-row">In deinen letzten ${topBottleneck.windowSize} Zyklen war Ebene ${topBottleneck.tierId} · ${topBottleneck.tierName} am häufigsten dein Engpass (${topBottleneck.count}×).</div>`;
   }
+  if (bestTime !== null){
+    html += `<div class="progress-row">Zyklen ${bestTime.label} fühlen sich bei dir am häufigsten besser an (${bestTime.rate}% von ${bestTime.sampleCount}).</div>`;
+  }
   list.innerHTML = html;
 }
 
 function finishCycle(text){
   document.getElementById("summary-text").textContent = text;
   renderWeightsTable();
+  renderSensitivityTable();
+  renderMoodSkilltreeTable();
+  renderDiary();
   renderHistory();
   renderProgress();
   renderDayClose();
+  renderOutcome();
   showScreen("screen-summary");
 }
 
@@ -1624,6 +2958,189 @@ function renderWeightsTable(){
   table.innerHTML = html;
 }
 
+// Neu seit v0.35 (Sinnhaftigkeits-Prüfung nach v0.33, Befund 3) — siehe computeGatekeeperSensitivityDetail
+// weiter oben. Gleiches Anzeigeprinzip wie renderWeightsTable(): reine Transparenz, nicht editierbar.
+function renderSensitivityTable(){
+  const table = document.getElementById("sensitivity-table");
+  const rules = [
+    { key:"tier0", label:"Ebene 0 · Biologie (Regel 1)", minSensitivity:0.7 },
+    { key:"tier1", label:"Ebene 1 · Emotion (Regel 2)", minSensitivity:1.0 },
+    { key:"tier2", label:"Ebene 2 · Sozial (Regel 3)", minSensitivity:1.0 }
+  ];
+  let html = "<tr><th>Regel</th><th>Multiplikator</th><th>Status</th></tr>";
+  rules.forEach(r => {
+    const d = computeGatekeeperSensitivityDetail(r.key, r.minSensitivity);
+    const status = d.isNeutral
+      ? `neutral (${d.sampleCount}/${d.minSamples} Zyklen)`
+      : `individuell gelernt (${d.sampleCount} Zyklen)`;
+    html += `<tr><td>${r.label}</td><td>${d.value.toFixed(2)}×</td><td>${status}</td></tr>`;
+  });
+  table.innerHTML = html;
+}
+
+// Neu seit v0.40: gleiches Anzeigeprinzip wie renderWeightsTable()/renderSensitivityTable() — reine,
+// schreibgeschützte Transparenz über den neuen, pro Emoji unabhängigen Skilltree. Bewusst nur eine
+// Zusammenfassung (Ebene/Level/XP) statt einer vollen Intervention-für-Intervention-Aufschlüsselung
+// wie bei den Interventions-Gewichtungen — die detaillierte Historie ist Aufgabe des geplanten
+// Emoji-Tagebuchs (v0.41), diese Tabelle beantwortet nur "wie eingespielt ist welches Emoji gerade".
+function renderMoodSkilltreeTable(){
+  const table = document.getElementById("mood-skilltree-table");
+  let html = "<tr><th>Emoji</th><th>Ebene</th><th>Level</th><th>XP</th></tr>";
+  MOOD_OPTIONS.forEach(m => {
+    const xp = moodXP[m.key] || 0;
+    html += `<tr><td>${m.emoji} ${m.label}</td><td>${m.tier}</td><td>${computeMoodLevel(xp)}</td><td>${xp}</td></tr>`;
+  });
+  table.innerHTML = html;
+}
+
+// ---- Emoji-Tagebuch (seit v0.41) -----------------------------------------------------------------
+// Julians eigener Vorschlag im Anschluss an v0.40: "meiner meinung nach könnte aus den daten ein
+// individuelles emoji tagebuch als datenbank abgeleitet werden." Ausdrücklich als lokal aus dem
+// ohnehin vorhandenen sessionLog ABGELEITETE Auswertung verstanden — KEINE echte Datenbank, kein
+// neuer Speicher, keine neue Abfrage (konsistent mit "kein Server, kein Konto"). Nutzt drei seit
+// v0.40 gespeicherte Felder (entryMoodKeySelected/moodSelectionActive/naturalBottleneckTierId) sowie
+// die seit v0.41 pro Verlaufseintrag mitgeschriebenen tags.
+//
+// computeMoodDiary() zählt bewusst JEDEN Zyklus, in dem eine Stimmung GESETZT war
+// (entryMoodKeySelected === key) — unabhängig davon, ob sie diesen Zyklus tatsächlich die Auswahl
+// gesteuert hat (cycleMoodSelectionActive/moodSelectionActive). Das ist bewusst ein anderer Zähler
+// als moodXP: das Tagebuch beantwortet "wie oft hast du dich so gefühlt", der Skilltree/XP beantwortet
+// "wie oft hat dieses Gefühl tatsächlich den Vorschlag bestimmt UND danach geholfen" (siehe v0.40).
+function computeMoodDiary(){
+  return MOOD_OPTIONS.map(m => {
+    const entries = sessionLog.filter(e => e.entryMoodKeySelected === m.key);
+    if (entries.length === 0) return null;
+    const last = entries[0]; // sessionLog wird per unshift() befüllt (siehe logCycle) — Index 0 = neuester Eintrag
+    return {
+      key: m.key,
+      emoji: m.emoji,
+      label: m.label,
+      level: computeMoodLevel(moodXP[m.key] || 0),
+      count: entries.length,
+      lastTierId: last.tierId,
+      lastTierName: last.tierName,
+      lastTitle: last.title,
+      lastQualiaLabel: last.qualiaLabel,
+      lastQualiaClass: last.qualiaClass
+    };
+  }).filter(Boolean);
+}
+
+// Gruppiert den gesamten Verlauf nach Hashtag (seit v0.41, siehe INTERVENTIONS/tags). Alt-Einträge
+// vor v0.41 haben schlicht kein tags-Feld (leeres Array als Default) und tragen dadurch einfach
+// nichts zum Index bei — kein Fehler, gleiches rückwärtskompatibles Muster wie timeBucket (v0.36).
+function computeTagIndex(){
+  const index = {};
+  sessionLog.forEach(entry => {
+    (entry.tags || []).forEach(tag => {
+      if (!index[tag]) index[tag] = [];
+      index[tag].push(entry);
+    });
+  });
+  return index;
+}
+
+// Modul-Zustand für den aktuell aktiven Filter-Chip im Tagebuch — bewusst nicht in localStorage
+// persistiert (reine Anzeige-Interaktion für diesen Besuch, kein Datenfeld).
+let diaryTagFilter = null;
+
+function renderDiary(){
+  const card = document.getElementById("diary-card");
+  const diary = computeMoodDiary();
+  if (diary.length === 0){
+    card.style.display = "none";
+    diaryTagFilter = null;
+    return;
+  }
+  card.style.display = "";
+
+  const moodsEl = document.getElementById("diary-moods");
+  moodsEl.innerHTML = diary.map(d => `
+    <div class="diary-mood-row">
+      <span class="diary-mood-emoji" aria-hidden="true">${d.emoji}</span>
+      <div class="diary-mood-info">
+        <div class="diary-mood-label">${d.label} <span class="mood-popover-level">Lv ${d.level}</span></div>
+        <div class="diary-mood-meta">${d.count}× gewählt · zuletzt Ebene ${d.lastTierId} · ${d.lastTierName} — ${d.lastTitle} <span class="h-qualia ${d.lastQualiaClass}">${d.lastQualiaLabel}</span></div>
+      </div>
+    </div>
+  `).join("");
+
+  const tagIndex = computeTagIndex();
+  // Nach Häufigkeit sortiert, auf die 12 häufigsten begrenzt — verhindert, dass die Chip-Zeile bei
+  // langer Nutzung unübersichtlich wird (gleiches "lieber weniger, aber klar" Prinzip wie überall
+  // sonst in der App). Wird bewusst NICHT stillschweigend gekappt: bei >12 Tags zeigt ein kurzer
+  // Hinweis, dass nicht alle Tags angezeigt werden.
+  const allTags = Object.keys(tagIndex).sort((a, b) => tagIndex[b].length - tagIndex[a].length);
+  const shownTags = allTags.slice(0, 12);
+
+  // Tag-Statistik (seit v0.42) — eine knappe Zusammenfassung, reine Aggregation von computeTagIndex(),
+  // keine neue Abfrage/kein neuer Speicher.
+  const statsEl = document.getElementById("diary-tag-stats");
+  if (allTags.length === 0){
+    statsEl.textContent = "";
+  } else {
+    const topTag = allTags[0];
+    statsEl.textContent = `${allTags.length} verschiedene ${allTags.length === 1 ? "Thema" : "Themen"} bisher · häufigstes: #${topTag} (${tagIndex[topTag].length}×)`;
+  }
+
+  // Tag-Wolke (seit v0.42): Chip-Schriftgröße skaliert leicht mit der Häufigkeit (12–17px), rein
+  // visuelle Gewichtung — Reihenfolge/Filterlogik bleiben unverändert wie seit v0.41.
+  const maxCount = shownTags.length ? tagIndex[shownTags[0]].length : 0;
+  const minCount = shownTags.length ? tagIndex[shownTags[shownTags.length - 1]].length : 0;
+  const cloudSize = (count) => {
+    if (maxCount === minCount) return 13;
+    const t = (count - minCount) / (maxCount - minCount);
+    return Math.round(12 + t * 5); // 12px..17px
+  };
+
+  const tagsEl = document.getElementById("diary-tags");
+  if (shownTags.length === 0){
+    tagsEl.innerHTML = "";
+  } else {
+    tagsEl.innerHTML = shownTags.map(t => `
+      <button type="button" class="tag-chip diary-tag-btn${diaryTagFilter === t ? " is-active" : ""}" data-tag="${t}" aria-pressed="${diaryTagFilter === t}" style="font-size:${cloudSize(tagIndex[t].length)}px;">#${t} (${tagIndex[t].length})</button>
+    `).join("") + (allTags.length > shownTags.length ? `<span class="diary-tags-more">+${allTags.length - shownTags.length} weitere</span>` : "");
+  }
+
+  const filteredEl = document.getElementById("diary-filtered");
+  const relatedEl = document.getElementById("diary-related");
+  if (diaryTagFilter && tagIndex[diaryTagFilter]){
+    const entries = tagIndex[diaryTagFilter];
+    filteredEl.innerHTML = `<div class="diary-filtered-label">#${diaryTagFilter} — ${entries.length} Zyklen</div>` + entries.map(e => `
+      <div class="history-entry">
+        <div class="h-num">${e.dateLabel || ""}<br>${e.timeLabel || ""}</div>
+        <div class="h-main"><span class="h-tier-dot" style="background-color:var(--tier${e.tierId});" aria-hidden="true"></span>Ebene ${e.tierId} · ${e.tierName} — ${e.title}${e.entryMoodKeySelected ? ` ${(MOOD_OPTIONS.find(m => m.key === e.entryMoodKeySelected) || {}).emoji || ""}` : ""}</div>
+        <div class="h-qualia ${e.qualiaClass}">${e.qualiaLabel}</div>
+      </div>
+    `).join("");
+
+    // "Ähnliche Aufgaben aus dem Inventar" (seit v0.42, dritte Hashtag-UX-Ergänzung neben Tag-Wolke
+    // und Tag-Statistik): zeigt weitere Interventionen aus dem vollen INTERVENTIONS-Inventar, die
+    // denselben Tag tragen, aber noch nie unter diesem Tag im Verlauf aufgetaucht sind. Rein
+    // informativ/nicht klickbar — eine rückblickende Bibliotheks-Ansicht im Tagebuch (Ebene 5,
+    // Reflexion), berührt nicht die Live-Auswahl während eines Zyklus (pickIntervention() bleibt
+    // unverändert). Vergleich über interventionId, nicht Titel — robust gegen künftige Titel-Änderungen.
+    // Verbesserung nach v0.42-Review: auf 6 begrenzt (gleiches Prinzip wie die 12er-Grenze bei den
+    // Tag-Chips) — bei vielbenutzten Tags (z. B. #Verbindung mit 6 Interventionen insgesamt) sonst
+    // potenziell lange Liste. Bewusst NICHT stillschweigend gekappt: bei mehr als 6 zeigt ein Hinweis
+    // die Anzahl der ausgeblendeten Aufgaben. Jeder Eintrag bekommt außerdem denselben Ebenen-Farbpunkt
+    // wie "Dein Verlauf" (.h-tier-dot) — bisher fehlte diese visuelle Konsistenz.
+    const loggedIds = new Set(entries.map(e => e.interventionId).filter(Boolean));
+    const related = INTERVENTIONS.filter(iv => (iv.tags || []).includes(diaryTagFilter) && !loggedIds.has(iv.id));
+    const shownRelated = related.slice(0, 6);
+    if (shownRelated.length > 0){
+      relatedEl.innerHTML = `<div class="diary-related-label">Weitere passende Aufgaben aus dem Inventar (noch nicht mit diesem Tag in deinem Verlauf):</div>` +
+        shownRelated.map(iv => `<div class="diary-related-item"><span class="h-tier-dot" style="background-color:var(--tier${iv.tier});" aria-hidden="true"></span>Ebene ${iv.tier} — ${iv.title}</div>`).join("") +
+        (related.length > shownRelated.length ? `<div class="diary-tags-more" style="margin-top:4px;">+${related.length - shownRelated.length} weitere</div>` : "");
+    } else {
+      relatedEl.innerHTML = "";
+    }
+  } else {
+    filteredEl.innerHTML = "";
+    relatedEl.innerHTML = "";
+  }
+}
+
 // ---- Daten-Backup: Export/Import (seit v0.19) ---------------------
 // Reines Vorsichts-Feature, keine neue Kern-Logik: alle drei localStorage-Töpfe (Gewichtungen,
 // Verlauf, Selbstwert-Reflexionen) als eine JSON-Datei sichern bzw. wieder einspielen. Wichtig,
@@ -1636,7 +3153,10 @@ function buildBackupPayload(){
     exportedAt: new Date().toISOString(),
     weights,
     history: sessionLog,
-    reflections: dailyReflections
+    reflections: dailyReflections,
+    outcomes: weeklyOutcomes,
+    moodWeights, // seit v0.40: pro Emoji unabhängiger Skilltree
+    moodXP       // seit v0.40: sichtbarer Fortschritt pro Emoji
   };
 }
 
@@ -1682,7 +3202,12 @@ document.getElementById("import-file-input").addEventListener("change", (e) => {
       (data.weights === undefined || (typeof data.weights === "object" && data.weights !== null)) &&
       (data.history === undefined || Array.isArray(data.history)) &&
       (data.reflections === undefined || (typeof data.reflections === "object" && data.reflections !== null)) &&
-      (data.weights || data.history || data.reflections);
+      (data.outcomes === undefined || (typeof data.outcomes === "object" && data.outcomes !== null)) &&
+      // moodWeights/moodXP seit v0.40 — optional, ältere Sicherungen (vor v0.40) haben diese Felder
+      // schlicht nicht, das ist kein Ablehnungsgrund (siehe applyImport, füllt dann einfach Defaults).
+      (data.moodWeights === undefined || (typeof data.moodWeights === "object" && data.moodWeights !== null)) &&
+      (data.moodXP === undefined || (typeof data.moodXP === "object" && data.moodXP !== null)) &&
+      (data.weights || data.history || data.reflections || data.outcomes);
     if (!looksValid) {
       statusEl.innerHTML = `<span style="color:var(--warn);">Das sieht nicht nach einer HUMANEED-Sicherung aus.</span>`;
       return;
@@ -1724,10 +3249,40 @@ function applyImport(data){
     dailyReflections = data.reflections;
     saveReflections();
   }
+  if (data.outcomes && typeof data.outcomes === "object"){
+    weeklyOutcomes = data.outcomes;
+    saveOutcomes();
+  }
+  // Seit v0.40: gleiches Auffüll-Prinzip wie bei `weights` oben — fehlende Emoji-Keys (z. B. Sicherung
+  // von vor v0.40) bzw. fehlende Interventions-IDs innerhalb eines Emojis bleiben beim aktuellen bzw.
+  // Default-Wert, statt den Import abzulehnen oder abzustürzen.
+  if (data.moodWeights && typeof data.moodWeights === "object"){
+    MOOD_OPTIONS.forEach(m => {
+      const incoming = data.moodWeights[m.key];
+      if (incoming && typeof incoming === "object"){
+        if (!moodWeights[m.key]) moodWeights[m.key] = {};
+        INTERVENTIONS.forEach(iv => {
+          if (typeof incoming[iv.id] === "number") moodWeights[m.key][iv.id] = incoming[iv.id];
+        });
+      }
+    });
+    saveMoodWeights();
+  }
+  if (data.moodXP && typeof data.moodXP === "object"){
+    MOOD_OPTIONS.forEach(m => {
+      if (typeof data.moodXP[m.key] === "number") moodXP[m.key] = data.moodXP[m.key];
+    });
+    saveMoodXP();
+  }
   renderWeightsTable();
+  renderSensitivityTable();
+  renderMoodSkilltreeTable();
+  updateMoodPopoverLevels();
+  renderDiary();
   renderHistory();
   renderProgress();
   renderDayClose();
+  renderOutcome();
 }
 
 document.getElementById("btn-restart").addEventListener("click", () => {
@@ -1736,6 +3291,14 @@ document.getElementById("btn-restart").addEventListener("click", () => {
   currentIntervention = null;
   currentDepth = null;
   qualiaChoice = null;
+  // entryMood wird seit v0.39 bewusst NICHT mehr hier zurückgesetzt: das Stimmungs-Widget ist jetzt
+  // ein dauerhaftes Header-Feld (siehe MOOD_KEY), keine Frage, die zu jedem Zyklus neu gehört — es
+  // bleibt gesetzt, bis die Person es selbst im Popover ändert oder "Zurücksetzen" tippt.
+  // Adaptiver Check-in (seit v0.27): pro Zyklus neu berechnen, welche Ebenen diesmal stabil genug
+  // für eine Ein-Klick-Bestätigung sind — Streaks/Override gehören nur zum jeweils laufenden Zyklus.
+  checkinPlan = computeCheckinPlan();
+  carriedTierIds = [];
+  forcedAskOverride = new Set();
   // Qualia-Buttons tragen ebenfalls die Klasse .opt-btn, werden aber (anders als die Check-in-
   // Optionen) nicht bei jedem Schritt neu aufgebaut — ihre "selected"-Markierung muss daher hier
   // separat zurückgesetzt werden.
@@ -1764,6 +3327,11 @@ document.getElementById("btn-reset-all").addEventListener("click", () => {
   document.getElementById("btn-confirm-reset").addEventListener("click", () => {
     resetAllData();
     renderWeightsTable();
+    renderSensitivityTable();
+    renderMoodSkilltreeTable();
+    updateMoodPopoverLevels();
+    diaryTagFilter = null;
+    renderDiary();
     statusEl.innerHTML = `<span style="color:var(--accent);">Alle Daten wurden gelöscht.</span>`;
   });
   document.getElementById("btn-cancel-reset").addEventListener("click", () => {
@@ -1771,12 +3339,46 @@ document.getElementById("btn-reset-all").addEventListener("click", () => {
   });
 });
 
+// Erstöffnungs-Kontext (seit v0.28): "Los geht's" ist ein normaler, nutzerausgelöster Screen-Wechsel
+// -> showScreen() darf hier ganz normal den Fokus setzen (anders als beim stillen Überspringen unten).
+document.getElementById("btn-welcome-start").addEventListener("click", () => {
+  try { localStorage.setItem(WELCOME_SEEN_KEY, "1"); } catch (e) { /* ignore */ }
+  showScreen("screen-checkin");
+});
+
 renderGreeting();
+checkinPlan = computeCheckinPlan(); // seit v0.27, muss vor dem allerersten renderCheckinStep() stehen
 renderCheckinStep(0, { focus: false });
+entryMood = loadMood(); // seit v0.39: dauerhaftes Stimmungs-Widget, letzte Auswahl aus localStorage laden
+renderMoodWidget(); // seit v0.39 — statische Liste, einmalig beim Bootstrap gebaut, Klick-Handler siehe dort
+updateMoodWidgetButton();
 renderHistory();
 renderWeightsTable();
+renderSensitivityTable();
+renderMoodSkilltreeTable();
+renderDiary();
+document.getElementById("diary-tags").addEventListener("click", (e) => {
+  const btn = e.target.closest(".diary-tag-btn");
+  if (!btn) return;
+  const tag = btn.dataset.tag;
+  diaryTagFilter = (diaryTagFilter === tag) ? null : tag;
+  renderDiary();
+});
 renderProgress();
 renderDayClose();
+renderOutcome();
+// Erstöffnungs-Kontext (seit v0.28): wurde der Hinweis schon einmal gesehen, direkt zum Check-in
+// springen — OHNE showScreen() zu benutzen, das würde beim allerersten Seitenaufbau ungefragt den
+// Fokus stehlen (gleiches Prinzip wie renderCheckinStep(0, {focus:false}) oben). Reiner Klassen-Tausch,
+// kein .focus(). Ist der Hinweis noch nicht gesehen, bleibt Screen 0 einfach aktiv (Default aus dem
+// statischen HTML) — kein zusätzlicher Code nötig. Das Stimmungs-Widget selbst ist seit v0.39 kein
+// eigener Screen mehr, sondern immer im Header sichtbar — hier ist daher nichts mehr zu tun.
+try {
+  if (localStorage.getItem(WELCOME_SEEN_KEY)) {
+    document.getElementById("screen-welcome").classList.remove("active");
+    document.getElementById("screen-checkin").classList.add("active");
+  }
+} catch (e) { /* ignore */ }
 </script>
 
 </body>
