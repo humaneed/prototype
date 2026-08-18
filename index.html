@@ -179,29 +179,71 @@
     outline:2px solid var(--accent);
     outline-offset:2px;
   }
+  /* Vollbild-Fenster statt kleinem verankerten Dropdown (auf Julians Wunsch nach dem Aufräum-
+     Durchgang: bei 15 Stimmungen im 3-Spalten-Raster reichte der kleine, oben rechts verankerte
+     220px-Rahmen auf manchen Bildschirmen nicht mehr, ohne INTERN zu scrollen — siehe die alte
+     max-height/overflow-Lösung, die dieser Umbau ersetzt). Jetzt ein echtes, den ganzen Bildschirm
+     bedeckendes Overlay (position:fixed;inset:0) mit abgedunkeltem Hintergrund und einer zentrierten
+     Karte darin — deutlich mehr Platz für alle 15 Stimmungen auf einmal, kein internes Scrollen mehr
+     nötig auf realistischen Bildschirmgrößen. */
   .mood-popover{
-    position:absolute;
-    top:58px;
-    right:16px;
-    z-index:20;
-    width:220px;
-    background:var(--surface);
-    border:1px solid var(--line);
-    border-radius:14px;
-    box-shadow:0 8px 24px rgba(0,0,0,0.16);
-    padding:12px;
-    text-align:left;
-    /* max-height/overflow (seit v0.43): bei 15 statt 6-8 Stimmungen wird das 3-Spalten-Raster deutlich
-       höher (5 Zeilen) — ohne Begrenzung könnte das Popover auf kleinen Bildschirmen über den
-       sichtbaren Bereich hinauswachsen. Nur das Options-Raster scrollt (siehe .mood-popover-options),
-       Hinweistext und "Zurücksetzen" bleiben immer sichtbar. */
-    max-height:calc(100vh - 90px);
+    position:fixed;
+    inset:0;
+    z-index:50;
+    background:rgba(15,18,15,0.45);
     display:flex;
-    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:10px;
   }
   .mood-popover[hidden]{ display:none; }
+  .mood-popover-panel{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:18px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.3);
+    padding:18px 20px 20px;
+    width:100%;
+    max-width:420px;
+    /* max-height/overflow bleibt als Sicherheitsnetz bestehen (nie ein zweites Mal stillschweigend
+       über den Bildschirmrand hinauswachsen lassen), greift auf realistischen Bildschirmgrößen mit
+       dem jetzigen Vollbild-Platz aber praktisch nicht mehr. */
+    max-height:calc(100vh - 20px);
+    display:flex;
+    flex-direction:column;
+    text-align:left;
+  }
+  .mood-popover-panel-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:2px;
+    flex-shrink:0;
+  }
+  .mood-popover-title{
+    font-size:15px;
+    font-weight:700;
+    color:var(--ink);
+  }
+  .mood-popover-close{
+    flex-shrink:0;
+    width:30px;
+    height:30px;
+    border-radius:50%;
+    border:none;
+    background:transparent;
+    color:var(--ink-soft);
+    font-size:16px;
+    line-height:1;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .mood-popover-close:hover{ background:var(--accent-soft, rgba(0,0,0,0.05)); }
   .mood-popover-hint{
-    margin:0 0 10px 0;
+    margin:0 0 12px 0;
     font-size:12px;
     font-style:italic;
     color:var(--ink-soft);
@@ -210,8 +252,12 @@
   }
   .mood-popover-options{
     display:grid;
-    grid-template-columns:repeat(3, 1fr);
-    gap:6px;
+    /* 4 statt der bisherigen 3 Spalten (seit Vollbild-Umbau): mit der Karte jetzt bis zu 420px breit
+       (statt 220px im alten Dropdown) passt eine vierte Spalte bequem hin — und senkt bei 15
+       Stimmungen die Zeilenzahl (7 Energiegeladen: 2 statt 3 Zeilen; 8 Ruhig: 2 statt 3 Zeilen), genau
+       der Hebel, der auf kleinen Bildschirmen (getestet bis 320×568) das interne Scrollen erübrigt. */
+    grid-template-columns:repeat(4, 1fr);
+    gap:8px;
     overflow-y:auto;
     min-height:0;
   }
@@ -219,14 +265,20 @@
     display:flex;
     flex-direction:column;
     align-items:center;
-    gap:2px;
-    padding:7px 2px;
+    gap:3px;
+    padding:10px 4px;
     border-radius:10px;
     border:1px solid var(--line);
     background:transparent;
     cursor:pointer;
-    font-size:19px;
+    font-size:21px;
     color:var(--ink);
+    /* min-width:0 gegen "Grid Blowout" (seit Vollbild-Umbau, 4 Spalten): CSS-Grid-Items haben per
+       Default min-width:auto = die Breite ihres längsten unteilbaren Inhalts (hier: einzelne lange
+       Wörter wie "Ausgelassen" ohne natürliche Umbruchstelle). Ohne dieses Reset zwingt genau EIN
+       langes Wort seine ganze Spalte breiter, als der Bildschirm hergibt — auf schmalen Geräten wurde
+       dadurch ein Button unbemerkt über den rechten Rand hinausgeschoben, statt umzubrechen. */
+    min-width:0;
   }
   /* Cluster-Zwischenüberschrift (seit v0.43-Nachschärfung) — spannt als eigenes Grid-Item alle 3
      Spalten, damit "Energiegeladen"/"Ruhig" als Zeile über der jeweiligen Emoji-Gruppe steht. */
@@ -245,16 +297,18 @@
     background:var(--accent-soft, rgba(0,0,0,0.05));
   }
   .mood-popover-options button .mood-popover-label{
-    font-size:9px;
+    font-size:10px;
     font-style:normal;
     color:var(--ink-soft);
-    line-height:1.15;
+    line-height:1.2;
     text-align:center;
+    overflow-wrap:break-word; /* lässt lange Einzelwörter wie "Ausgelassen"/"Niedergeschlagen" innerhalb der Spalte umbrechen, siehe min-width:0-Kommentar oben */
+    width:100%;
   }
   /* Mood-Skilltree-Level (seit v0.40): bewusst noch kleiner/leiser als das Label darüber — sichtbarer
      Fortschritt, aber nüchtern, keine auffällige Badge-Optik. */
   .mood-popover-options button .mood-popover-level{
-    font-size:8px;
+    font-size:9px;
     font-style:normal;
     color:var(--accent);
     line-height:1;
@@ -592,6 +646,18 @@
      bewusst kein eigener Farbakzent, damit klar bleibt, dass das nur eine Rahmung ist, keine
      inhaltliche Ebenen-Zuordnung wie bei .tier-accent-N. */
   .mood-framing{font-style:italic;color:var(--ink-soft);font-size:15px;margin:0 0 12px 0;}
+  /* Ebenen-Erklärtexte (letzter offener Punkt aus dem zweiten v8-Audit) — bewusst als zugeklapptes
+     <details> statt einer immer sichtbaren Zeile: der Check-in soll "unter einer Minute" bleiben
+     (siehe Willkommens-Text), eine für jeden Schritt erzwungene Extra-Zeile widerspräche dem. Wer das
+     6-Ebenen-Modell noch nicht kennt, kann aufklappen; wer es kennt, überliest eine einzelne
+     unauffällige "Was bedeutet das?"-Zeile genauso mühelos wie die bestehenden "So geht's genauer"/
+     "Warum?"-Details auf dem Ergebnis-Screen. */
+  .tier-blurb{
+    margin:-2px 0 12px 0;
+    font-size:12.5px;
+  }
+  .tier-blurb summary{ font-weight:600; }
+  .tier-blurb p{ font-style:italic; }
 
   .row{
     display:flex;
@@ -662,6 +728,25 @@
   .h-qualia.worse{color:var(--warn);}
   .h-qualia.same{color:var(--ink-soft);}
   .history-empty{color:var(--ink-soft);font-size:13px;}
+  /* Aufräumen/Vernetzen-Durchgang (nach v0.43): "Dein Verlauf" und die Tag-gefilterte Liste im
+     Tagebuch wuchsen bisher unbegrenzt mit — bei wochenlanger Nutzung ein potenziell endloser
+     Rohdaten-Auszug, der "Neuer Zyklus" unter sich begräbt (genau das "läuft ins Leere"-Gefühl, das
+     Julian benannt hat). Gleiches Prinzip wie bereits bei der Tag-Wolke/"ähnliche Aufgaben" seit v0.42:
+     nicht stillschweigend kappen, sondern ehrlich zeigen, wie viel ausgeblendet ist — hier zusätzlich
+     mit einem echten Umschalter statt nur eines toten Hinweistexts, weil "Dein Verlauf"/die gefilterte
+     Liste (anders als die Tag-Wolke) der eigentliche Inhalt sind, nicht nur eine Übersicht darüber. */
+  .list-toggle-link{
+    display:block;
+    margin-top:10px;
+    padding:0;
+    border:none;
+    background:none;
+    font-family:inherit;
+    font-size:13px;
+    color:var(--ink-soft);
+    text-decoration:underline;
+    cursor:pointer;
+  }
 
   /* Emoji-Tagebuch (seit v0.41) — Pro-Emoji-Zeilen (ähnliches Muster wie .history-entry, aber mit
      größerem Emoji statt Farbpunkt) plus klickbare Tag-Chips zum Filtern. */
@@ -677,6 +762,9 @@
   .diary-mood-info{flex:1;}
   .diary-mood-label{font-size:14px;font-weight:700;}
   .diary-mood-meta{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  /* Seit Nachschärfung nach v0.43: bewusst noch leiser/kleiner als .diary-mood-meta — Cross-Learning-
+     Transparenz und Wochen-Trend sind ergänzende Details, keine Kernaussage der Zeile. */
+  .diary-mood-extra{font-size:11px;color:var(--ink-soft);margin-top:2px;font-style:italic;}
   .diary-tags{
     display:flex;
     flex-wrap:wrap;
@@ -756,13 +844,23 @@
        main/.screen), nicht an Zyklusstart gebunden. Rahmung-Grenze aus v0.38 bleibt: siehe
        MOOD_OPTIONS-Kommentar im Script — beeinflusst nur den Satz auf dem Ergebnis-Screen, nie die
        Auswahl von Ebene/Intervention. -->
-  <button id="mood-widget-btn" class="mood-widget-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Stimmung wählen">
+  <button id="mood-widget-btn" class="mood-widget-btn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Stimmung wählen">
     <span id="mood-widget-emoji" aria-hidden="true">+</span>
   </button>
-  <div id="mood-popover" class="mood-popover" hidden role="menu" aria-label="Stimmung wählen">
-    <p class="mood-popover-hint">Ändert nur, wie dein vorgeschlagener Schritt formuliert ist — nicht, was dir vorgeschlagen wird. Jederzeit änderbar.</p>
-    <div id="mood-popover-options" class="mood-popover-options"></div>
-    <button class="mood-popover-clear" id="btn-mood-clear" type="button">Zurücksetzen</button>
+  <!-- Vollbild-Fenster statt kleinem verankertem Dropdown (siehe CSS-Kommentar bei .mood-popover):
+       #mood-popover ist jetzt das den ganzen Bildschirm bedeckende Overlay samt abgedunkeltem
+       Hintergrund, .mood-popover-panel die eigentliche, zentrierte Auswahl-Karte darin — dadurch
+       ein echter Dialog (role="dialog"/aria-modal) statt eines reinen Menüs. -->
+  <div id="mood-popover" class="mood-popover" hidden>
+    <div class="mood-popover-panel" role="dialog" aria-modal="true" aria-labelledby="mood-popover-title">
+      <div class="mood-popover-panel-header">
+        <span class="mood-popover-title" id="mood-popover-title">Stimmung wählen</span>
+        <button type="button" class="mood-popover-close" id="btn-mood-popover-close" aria-label="Schließen">✕</button>
+      </div>
+      <p class="mood-popover-hint">Ändert nur, wie dein vorgeschlagener Schritt formuliert ist — nicht, was dir vorgeschlagen wird. Jederzeit änderbar.</p>
+      <div id="mood-popover-options" class="mood-popover-options" role="menu" aria-label="Stimmung wählen"></div>
+      <button class="mood-popover-clear" id="btn-mood-clear" type="button">Zurücksetzen</button>
+    </div>
   </div>
 </header>
 
@@ -1134,6 +1232,26 @@ const TIER_WHY = {
   5: "Unstrukturierte Zeit ist neurobiologisch notwendig für das Default Mode Network (Scholé) — Sinn entsteht nicht im Tun, sondern im Innehalten."
 };
 
+// Kurze Ebenen-Erklärtexte (letzter offener Punkt aus dem zweiten v8-Audit, v0.22 — "Beste
+// Tageszeit"-Statistik und Radar-Chart waren die anderen beiden, Radar-Chart bleibt auf Julians
+// Wunsch vorerst zurückgestellt). Bewusst NICHT dasselbe wie TIER_WHY oben: TIER_WHY begründet
+// philosophisch/neurowissenschaftlich, WARUM eine Handlung auf dieser Ebene wirkt (im "Warum?"-Detail
+// auf dem Ergebnis-Screen) — das hier erklärt in einem Satz, WAS die Ebene überhaupt umfasst, für
+// jemanden, der das 6-Ebenen-Modell noch nicht kennt. Bewusst auch NICHT die Check-in-Frage
+// wiederholt (die steht direkt darunter) — sondern die Rolle der Ebene im Gesamtbild, plus 1-2
+// konkrete Beispiele als Anker. Erscheint nur auf der Check-in-Karte (siehe renderCheckinStep()): der
+// naheliegende Moment für Orientierung, während gerade genau diese Ebene gefragt wird — nicht
+// zusätzlich auf dem Ergebnis-Screen, der mit "So geht's genauer"/"Warum?" schon zwei Detail-Ebenen
+// hat und sonst überladen würde.
+const TIER_BLURB = {
+  0: "Das körperliche Fundament — Schlaf, Bewegung, Ernährung. Trägt alle anderen Ebenen mit.",
+  1: "Dein Nervensystem im Moment — Anspannung oder Sicherheit, roh und unmittelbar.",
+  2: "Nähe zu anderen Menschen — nicht wie viele, sondern wie verbunden.",
+  3: "Gedankliche Kapazität — wie viel Klarheit gerade wirklich verfügbar ist.",
+  4: "Zutrauen ins eigene Handeln — Flow entsteht durch Tun, nicht Zureden.",
+  5: "Der große Zusammenhang — ob sich das Tägliche gerade sinnvoll anfühlt."
+};
+
 // ---- 2. Interventions-Inventar (56, tier-getaggt, alle final bestätigt) ---------
 // #01–#20: Herkunft/Status siehe frühere Versionshinweise im Projekt (`claude/humaneed_prototype_notes.md`).
 // #21–#30 kamen in v0.9 dazu (Julians Wunsch nach "umfangreicherem Inventar", damit sich Vorschläge
@@ -1469,7 +1587,7 @@ const INTERVENTIONS = [
 // "einschleift" (unterschiedliche Menschen -> unterschiedliches Feedback -> unterschiedliche
 // Gewichtung über Wochen, nicht nur pro Sitzung). Bewusst NUR `localStorage` im selben Browser —
 // kein Konto, kein Server, keine Synchronisation zwischen Geräten. Alles bleibt lokal bei der Person.
-const STORAGE_KEYS = { weights: "humaneed_weights_v1", history: "humaneed_history_v1", reflections: "humaneed_reflections_v1", outcomes: "humaneed_outcomes_v1", moodWeights: "humaneed_mood_weights_v1", moodXP: "humaneed_mood_xp_v1" };
+const STORAGE_KEYS = { weights: "humaneed_weights_v1", history: "humaneed_history_v1", reflections: "humaneed_reflections_v1", outcomes: "humaneed_outcomes_v1", moodWeights: "humaneed_mood_weights_v1", moodXP: "humaneed_mood_xp_v1", moodCrossReceived: "humaneed_mood_cross_received_v1", moodDirectCount: "humaneed_mood_direct_count_v1" };
 const HISTORY_LIMIT = 300; // Obergrenze, damit localStorage nicht unbegrenzt wächst
 const WELCOME_SEEN_KEY = "humaneed_welcome_seen_v1"; // seit v0.28, siehe Screen 0 weiter oben
 const MOOD_KEY = "humaneed_entry_mood_v1"; // seit v0.39: Stimmungs-Widget ist jetzt dauerhaft (nicht mehr pro Zyklus), speichert nur den MOOD_OPTIONS-key als String oder gar nichts
@@ -1546,22 +1664,51 @@ function setMoodWeight(moodKey, ivId, value){
 // BRUCHTEIL des primären Gewichtungs-Deltas wandert in Stimmungen desselben `cluster` — bewusst
 // schwach ("ein bisschen lernen", nicht gleichsetzen), löst nie eigenes XP aus (siehe finishFeedback()
 // weiter unten) und betrifft nie Stimmungen aus dem jeweils anderen Cluster.
-const MOOD_CROSS_LEARNING_FACTOR = 0.33;
+//
+// Nachschärfung (direkt im Anschluss an v0.43, Julians Auftrag "setze alles so um wie du eruiert
+// hast"): der Bruchteil war bisher ein fester Wert (0.33) für jede Stimmung gleichermaßen. Das
+// berührte zwei der damals offen benannten Punkte gleichzeitig — (1) die Datendichte-Sorge (selten
+// gewählte Stimmungen bleiben dünn, auch mit Cross-Learning) und (2) die Spannung mit dem
+// Anti-Persona-Prinzip (eine fest verdrahtete Cluster-Zuordnung passt nicht für jede Person gleich
+// gut). Statt zwei separate Mechanismen zu bauen, löst EIN gemeinsamer Hebel beides: der Bruchteil
+// ist jetzt abhängig davon, wie viel EIGENE direkte Erfahrung die EMPFANGENDE Stimmung schon hat
+// (`moodDirectFeedbackCount`, siehe unten) — wenig eigene Erfahrung → stärkerer Rückgriff auf
+// verwandte Stimmungen; viel eigene Erfahrung → die Stimmung vertraut zunehmend ihren eigenen Daten
+// und braucht die feste Cluster-Annahme immer weniger. Damit korrigiert sich die anfängliche,
+// redaktionell gesetzte Taxonomie mit wachsender Nutzung von selbst in Richtung einer wirklich
+// individuellen Gewichtung — ohne ein zweites, komplexeres Lernsystem für die Cluster-Zuordnung
+// selbst zu bauen (das bliebe ein möglicher, aber deutlich größerer künftiger Schritt).
+const MOOD_CROSS_LEARNING_FACTOR = 0.33; // Standard-Bruchteil (mittlere Stufe), siehe crossLearningFactorFor()
 
 function moodCluster(moodKey){
   const m = MOOD_OPTIONS.find(mm => mm.key === moodKey);
   return m ? m.cluster : null;
 }
 
+// Gestaffelt statt stufenlos (bewusst, wie MOOD_LEVEL_THRESHOLDS: einfache, erklärbare Schwellen statt
+// einer unübersichtlichen Formel). `receiverMoodKey` ist die Stimmung, die den Cross-Learning-Anteil
+// EMPFÄNGT, nicht die auslösende.
+function crossLearningFactorFor(receiverMoodKey){
+  const count = moodDirectFeedbackCount[receiverMoodKey] || 0;
+  if (count < 3) return 0.5;    // kaum eigene Erfahrung -> stärker auf verwandte Stimmungen stützen
+  if (count < 8) return MOOD_CROSS_LEARNING_FACTOR; // Standard
+  return 0.2;                   // genug eigene Erfahrung -> zunehmend eigenständig
+}
+
 function applyMoodCrossLearning(sourceMoodKey, ivId, primaryDelta){
   const cluster = moodCluster(sourceMoodKey);
   if (!cluster) return;
-  const crossDelta = primaryDelta * MOOD_CROSS_LEARNING_FACTOR;
   MOOD_OPTIONS.forEach(m => {
     if (m.key === sourceMoodKey || m.cluster !== cluster) return;
+    const crossDelta = primaryDelta * crossLearningFactorFor(m.key);
     const next = Math.min(3, Math.max(0.2, getMoodWeight(m.key, ivId) + crossDelta));
     setMoodWeight(m.key, ivId, next);
+    // Transparenz-Zähler (seit dieser Nachschärfung): wie oft hat diese Stimmung von verwandten
+    // Stimmungen mitgelernt — sichtbar im Emoji-Tagebuch (siehe computeMoodDiary()/renderDiary()),
+    // damit Cross-Learning nicht länger unsichtbar im Hintergrund passiert.
+    moodCrossLearningReceived[m.key] = (moodCrossLearningReceived[m.key] || 0) + 1;
   });
+  saveMoodCrossLearningReceived();
 }
 
 // ---- Mood-XP/Level (seit v0.40) ------------------------------------------------------------------
@@ -1591,6 +1738,56 @@ function loadMoodXP(){
 function saveMoodXP(){
   try { localStorage.setItem(STORAGE_KEYS.moodXP, JSON.stringify(moodXP)); }
   catch (e) { console.warn("Konnte Mood-XP nicht speichern.", e); }
+}
+
+// ---- Cross-Learning-Zähler (Transparenz + Datendichte-Grundlage, seit der Nachschärfung nach v0.43) ----
+// Zwei einfache Zähler-Objekte nach exakt demselben Muster wie moodXP: `moodDirectFeedbackCount`
+// zählt, wie oft eine Stimmung SELBST direktes Qualia-Feedback (besser ODER schlechter, nicht nur
+// "besser" wie bei XP) bekommen hat — Grundlage für crossLearningFactorFor(). `moodCrossLearningReceived`
+// zählt, wie oft eine Stimmung Cross-Learning von verwandten Stimmungen EMPFANGEN hat — reine
+// Transparenz-Anzeige im Emoji-Tagebuch, ohne selbst Einfluss auf die Gewichtung zu nehmen.
+function loadMoodDirectFeedbackCount(){
+  const defaults = {};
+  MOOD_OPTIONS.forEach(m => defaults[m.key] = 0);
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.moodDirectCount);
+    if (!raw) return defaults;
+    const stored = JSON.parse(raw);
+    MOOD_OPTIONS.forEach(m => {
+      if (typeof stored[m.key] === "number") defaults[m.key] = stored[m.key];
+    });
+    return defaults;
+  } catch (e) {
+    console.warn("Konnte gespeicherte Mood-Feedback-Zähler nicht lesen, starte mit Standardwerten.", e);
+    return defaults;
+  }
+}
+
+function saveMoodDirectFeedbackCount(){
+  try { localStorage.setItem(STORAGE_KEYS.moodDirectCount, JSON.stringify(moodDirectFeedbackCount)); }
+  catch (e) { console.warn("Konnte Mood-Feedback-Zähler nicht speichern.", e); }
+}
+
+function loadMoodCrossLearningReceived(){
+  const defaults = {};
+  MOOD_OPTIONS.forEach(m => defaults[m.key] = 0);
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.moodCrossReceived);
+    if (!raw) return defaults;
+    const stored = JSON.parse(raw);
+    MOOD_OPTIONS.forEach(m => {
+      if (typeof stored[m.key] === "number") defaults[m.key] = stored[m.key];
+    });
+    return defaults;
+  } catch (e) {
+    console.warn("Konnte gespeicherten Cross-Learning-Zähler nicht lesen, starte mit Standardwerten.", e);
+    return defaults;
+  }
+}
+
+function saveMoodCrossLearningReceived(){
+  try { localStorage.setItem(STORAGE_KEYS.moodCrossReceived, JSON.stringify(moodCrossLearningReceived)); }
+  catch (e) { console.warn("Konnte Cross-Learning-Zähler nicht speichern.", e); }
 }
 
 function computeMoodLevel(xp){
@@ -1689,11 +1886,13 @@ function renderDayCloseUnanswered(){
 // Projekthinweise gilt hier genauso wie bei jeder anderen Datenschicht: erst messen und im Alltag
 // bewähren, bevor darauf aufgebaut wird. Für jetzt: reine, ehrliche Sichtbarkeit, ob HUMANEED über
 // Zeit tatsächlich hilft — nicht nur, ob sie benutzt wird.
-function getISOWeekLabel(date){
-  // Standard-ISO-8601-Wochennummer (Donnerstag-der-Woche-Regel: eine Woche gehört zu dem Jahr, in dem
-  // ihr Donnerstag liegt) — robust über Jahresgrenzen hinweg (z. B. Ende Dezember kann bereits zu
-  // Woche 1 des Folgejahres gehören).
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+// Standard-ISO-8601-Wochennummer (Donnerstag-der-Woche-Regel: eine Woche gehört zu dem Jahr, in dem
+// ihr Donnerstag liegt) — robust über Jahresgrenzen hinweg (z. B. Ende Dezember kann bereits zu Woche 1
+// des Folgejahres gehören). Nimmt explizite Jahr/Monat(0-basiert)/Tag-Werte statt eines Date-Objekts —
+// vermeidet dadurch jede Zeitzonen-Mehrdeutigkeit beim späteren Aufruf mit gespeicherten `isoDate`-
+// Strings (seit Nachschärfung nach v0.43, siehe isoDateStringToWeekLabel() weiter unten).
+function getISOWeekLabelFromYMD(year, monthIndex, day){
+  const d = new Date(Date.UTC(year, monthIndex, day));
   const dayNum = (d.getUTCDay() + 6) % 7; // Montag=0 ... Sonntag=6
   d.setUTCDate(d.getUTCDate() - dayNum + 3); // auf den Donnerstag dieser Woche verschieben
   const isoYear = d.getUTCFullYear();
@@ -1703,6 +1902,19 @@ function getISOWeekLabel(date){
   week1Monday.setUTCDate(jan4.getUTCDate() - jan4DayNum);
   const weekNum = Math.round((d - week1Monday) / (7 * 24 * 3600 * 1000)) + 1;
   return `${isoYear}-W${String(weekNum).padStart(2, "0")}`;
+}
+
+function getISOWeekLabel(date){
+  return getISOWeekLabelFromYMD(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+// Wandelt ein gespeichertes `isoDate` ("YYYY-MM-DD", siehe logCycle()) direkt in ein Wochen-Label um,
+// ohne den Umweg über ein Date-Objekt (und damit ohne jedes Risiko einer lokalen Zeitzonen-Verschiebung
+// nahe Mitternacht) — Grundlage für computeMoodWeekTrend()/computeTopMoodForWeek() weiter unten.
+function isoDateStringToWeekLabel(isoDateStr){
+  const parts = (isoDateStr || "").split("-").map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return null;
+  return getISOWeekLabelFromYMD(parts[0], parts[1] - 1, parts[2]);
 }
 
 // Liefert das Label der Woche, die 7 Tage vor `date` lag — das funktioniert unabhängig vom
@@ -1811,6 +2023,13 @@ function renderOutcome(){
       : "Verglichen mit deinem letzten Eintrag (dazwischen wurden Wochen ausgelassen)";
     html += `<div class="progress-row" style="margin-top:8px;">${compareLabel}: ${trend.direction} · Verlauf: ${trend.sequence}</div>`;
   }
+  // Brücke zum Emoji-Tagebuch (seit Nachschärfung nach v0.43): welche Stimmung war in dieser Woche am
+  // häufigsten gesetzt — rein deskriptiv neben der Selbsteinschätzung, keine Kausalaussage (siehe
+  // computeTopMoodForWeek()-Kommentar).
+  const topMood = computeTopMoodForWeek(targetWeek);
+  if (topMood){
+    html += `<div class="progress-row" style="margin-top:4px;">Meistgewählte Stimmung in dieser Woche: ${topMood.mood.emoji} ${topMood.mood.label} (${topMood.count}×)</div>`;
+  }
   content.innerHTML = html;
   if (existing === undefined){
     const optWrap = document.getElementById("outcome-options");
@@ -1838,12 +2057,14 @@ function resetAllData(){
     localStorage.removeItem(STORAGE_KEYS.outcomes);
     localStorage.removeItem(STORAGE_KEYS.moodWeights); // seit v0.40
     localStorage.removeItem(STORAGE_KEYS.moodXP);       // seit v0.40
+    localStorage.removeItem(STORAGE_KEYS.moodCrossReceived); // seit Nachschärfung nach v0.43
+    localStorage.removeItem(STORAGE_KEYS.moodDirectCount);   // seit Nachschärfung nach v0.43
   } catch (e) { /* ignore */ }
   INTERVENTIONS.forEach(iv => weights[iv.id] = 1.0);
   sessionLog = [];
   dailyReflections = {};
   weeklyOutcomes = {};
-  MOOD_OPTIONS.forEach(m => { moodWeights[m.key] = {}; moodXP[m.key] = 0; }); // seit v0.40
+  MOOD_OPTIONS.forEach(m => { moodWeights[m.key] = {}; moodXP[m.key] = 0; moodCrossLearningReceived[m.key] = 0; moodDirectFeedbackCount[m.key] = 0; }); // seit v0.40, erweitert nach v0.43
   renderHistory();
   renderProgress();
   renderDayClose();
@@ -1856,6 +2077,8 @@ let dailyReflections = loadReflections(); // { "YYYY-MM-DD": "held" | "bent" }
 let weeklyOutcomes = loadOutcomes(); // { "YYYY-Www": 10|30|50|70|90 } — seit v0.31, siehe renderOutcome()
 let moodWeights = loadMoodWeights(); // seit v0.40: pro Emoji ein eigener, unabhängiger Skilltree, siehe dort
 let moodXP = loadMoodXP(); // seit v0.40: sichtbarer Fortschritt pro Emoji, siehe computeMoodLevel()
+let moodDirectFeedbackCount = loadMoodDirectFeedbackCount(); // seit Nachschärfung nach v0.43, siehe crossLearningFactorFor()
+let moodCrossLearningReceived = loadMoodCrossLearningReceived(); // seit Nachschärfung nach v0.43, siehe applyMoodCrossLearning()
 
 // ---- App-Status --------------------------------------------
 let answers = {};          // { tierId: score }
@@ -1994,12 +2217,17 @@ function renderCheckinStep(index, opts = {}){
   const plan = checkinPlan[tier.id];
   const showCarryCard = !!(plan && plan.carry && !forcedAskOverride.has(tier.id));
 
+  // Ebenen-Erklärtexte (siehe TIER_BLURB-Kommentar): dasselbe zugeklappte <details> in beiden Zweigen
+  // unten (Bestätigungs-Karte und normale 5-Optionen-Karte) — als kleine Funktion statt Duplikat.
+  const blurbHtml = `<details class="tier-blurb"><summary>Was bedeutet das?</summary><p>${TIER_BLURB[tier.id]}</p></details>`;
+
   if (showCarryCard){
     // Adaptiver Check-in (seit v0.27): diese Ebene war über mehrere Zyklen stabil — Ein-Klick-
     // Bestätigung statt 5-Optionen-Frage, mit sichtbarem Ausweg. Kein role="radiogroup" hier, das
     // sind zwei unabhängige Aktions-Buttons, keine Auswahl unter Alternativen.
     card.innerHTML = `
       <div class="tier-label tier-accent-${tier.id}">Ebene ${tier.id} · ${tier.name}</div>
+      ${blurbHtml}
       <div class="question" id="checkin-question-${tier.id}">${tier.question}</div>
       <p class="carry-hint">In den letzten Tagen ähnlich eingeschätzt — passt das noch?</p>
       <button class="primary-btn" id="btn-carry-confirm" type="button">Passt noch</button>
@@ -2019,6 +2247,7 @@ function renderCheckinStep(index, opts = {}){
   } else {
     card.innerHTML = `
       <div class="tier-label tier-accent-${tier.id}">Ebene ${tier.id} · ${tier.name}</div>
+      ${blurbHtml}
       <div class="question" id="checkin-question-${tier.id}">${tier.question}</div>
       <div class="options" data-tier="${tier.id}" role="radiogroup" aria-labelledby="checkin-question-${tier.id}"></div>
     `;
@@ -2509,10 +2738,20 @@ function markMoodPopoverSelection(){
 function openMoodPopover(){
   document.getElementById("mood-popover").hidden = false;
   document.getElementById("mood-widget-btn").setAttribute("aria-expanded", "true");
+  // Vollbild-Fenster (siehe .mood-popover-CSS-Kommentar): jetzt ein echter Dialog, kein kleines
+  // Dropdown mehr — der Fokus geht deshalb beim Öffnen auf den Schließen-Button, den naheliegenden
+  // ersten Tab-Stopp in einem Dialog, statt vorschnell ein Emoji zu markieren.
+  const closeBtn = document.getElementById("btn-mood-popover-close");
+  if (closeBtn) closeBtn.focus();
 }
 function closeMoodPopover(){
   document.getElementById("mood-popover").hidden = true;
   document.getElementById("mood-widget-btn").setAttribute("aria-expanded", "false");
+  // Fokus geht bei JEDEM Schließen-Weg (Auswahl, Zurücksetzen, Schließen-Button, Klick auf den
+  // abgedunkelten Hintergrund, Escape) einheitlich zurück auf den Auslöser-Button — vorher (kleines
+  // Dropdown) landete er bei Escape/Außen-Klick im Nichts, weil nur zwei von vier Schließen-Wegen ihn
+  // explizit zurückgesetzt haben.
+  document.getElementById("mood-widget-btn").focus();
 }
 // Mood-Skilltree-Level im Popover (seit v0.40): pro Emoji-Button ein ruhiger "Lv N"-Hinweis, der
 // zeigt, wie eingespielt der eigene Skilltree dieses Emojis schon ist — sichtbarer Fortschritt, wie
@@ -2550,8 +2789,7 @@ function renderMoodWidget(){
       saveMood();
       updateMoodWidgetButton();
       markMoodPopoverSelection();
-      closeMoodPopover();
-      widgetBtn.focus();
+      closeMoodPopover(); // setzt den Fokus selbst zurück, siehe dort
     });
   });
   widgetBtn.addEventListener("click", () => {
@@ -2563,19 +2801,21 @@ function renderMoodWidget(){
     updateMoodWidgetButton();
     markMoodPopoverSelection();
     closeMoodPopover();
-    widgetBtn.focus();
   });
-  // Außerhalb-Klick und Escape schließen das Popover — gleiche Erwartung wie bei jedem Dropdown/Menü,
-  // nötig, weil das Widget jetzt auf jedem Screen erreichbar ist, nicht nur einem eigenen Screen.
-  document.addEventListener("click", (e) => {
-    if (popover.hidden) return;
-    if (popover.contains(e.target) || widgetBtn.contains(e.target)) return;
-    closeMoodPopover();
+  document.getElementById("btn-mood-popover-close").addEventListener("click", () => closeMoodPopover());
+  // Vollbild-Fenster (nach dem Aufräum-Durchgang): #mood-popover bedeckt jetzt als position:fixed-
+  // Overlay den ganzen Bildschirm — ein Klick "außerhalb" der Auswahl-Karte landet dadurch immer
+  // direkt auf diesem Overlay selbst (dem abgedunkelten Hintergrund), nie mehr auf einem anderen
+  // Seitenelement. Der frühere document-weite Klick-Listener (der prüfen musste, ob der Klick
+  // außerhalb von Popover UND Auslöser-Button lag) ist dadurch überflüssig geworden — ein einziger
+  // Klick-Handler auf dem Overlay reicht: e.target === popover heißt "auf den Hintergrund geklickt,
+  // nicht auf die Karte" (Klicks in der Karte bubbeln mit einem tieferen e.target hoch).
+  popover.addEventListener("click", (e) => {
+    if (e.target === popover) closeMoodPopover();
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !popover.hidden){
       closeMoodPopover();
-      widgetBtn.focus();
     }
   });
   markMoodPopoverSelection();
@@ -2726,6 +2966,13 @@ function finishFeedback(){
     if (qualiaChoice === -1) w = Math.max(0.2, w - 0.3);
     setMoodWeight(cycleMoodKey, id, w);
     if (qualiaChoice === 1 || qualiaChoice === -1){
+      // Direkter Feedback-Zähler (seit Nachschärfung nach v0.43) VOR dem Cross-Learning-Aufruf erhöht:
+      // Grundlage für crossLearningFactorFor() bei ANDEREN Stimmungen, die von dieser hier lernen —
+      // die Reihenfolge selbst ändert nichts an der Korrektheit (der Zähler dieser Stimmung fließt nur
+      // in ihre EIGENE künftige Rolle als Empfängerin ein, nicht in diesen Aufruf), macht aber deutlich,
+      // dass "direkte Erfahrung" zuerst verbucht wird, dann erst der Lerntransfer an andere passiert.
+      moodDirectFeedbackCount[cycleMoodKey] = (moodDirectFeedbackCount[cycleMoodKey] || 0) + 1;
+      saveMoodDirectFeedbackCount();
       applyMoodCrossLearning(cycleMoodKey, id, qualiaChoice === 1 ? 0.3 : -0.3);
     }
     saveMoodWeights();
@@ -2932,13 +3179,24 @@ function finishCycle(text){
   showScreen("screen-summary");
 }
 
+// Aufräumen/Vernetzen-Durchgang (nach v0.43): bisher wurde IMMER der komplette sessionLog gerendert
+// (bis zu HISTORY_LIMIT = 300 Zyklen) — bei regelmäßiger Nutzung wuchs "Dein Verlauf" unbegrenzt und
+// schob "Neuer Zyklus" darunter immer weiter weg, siehe .list-toggle-link-Kommentar oben. Jetzt: die
+// letzten HISTORY_DISPLAY_LIMIT Zyklen direkt sichtbar, Rest per echtem Umschalter erreichbar statt
+// unsichtbar oder nur als toter Hinweistext. `historyShowAll` ist bewusst reiner Anzeige-Zustand für
+// diesen Besuch (wie `diaryTagFilter`), nicht in localStorage persistiert — bei jedem neuen
+// Seitenaufruf wieder eingeklappt, damit der Kern-Loop nicht standardmäßig hinter der vollen Liste startet.
+const HISTORY_DISPLAY_LIMIT = 8;
+let historyShowAll = false;
+
 function renderHistory(){
   const list = document.getElementById("history-list");
   if (sessionLog.length === 0){
     list.innerHTML = `<div class="history-empty">Noch keine Zyklen gespeichert.</div>`;
     return;
   }
-  list.innerHTML = sessionLog.map(entry => `
+  const shown = historyShowAll ? sessionLog : sessionLog.slice(0, HISTORY_DISPLAY_LIMIT);
+  let html = shown.map(entry => `
     <div class="history-entry">
       <div class="h-num">${entry.dateLabel || ""}<br>${entry.timeLabel || ""}</div>
       <div class="h-main">
@@ -2947,6 +3205,17 @@ function renderHistory(){
       <div class="h-qualia ${entry.qualiaClass}">${entry.qualiaLabel}</div>
     </div>
   `).join("");
+  const hidden = sessionLog.length - HISTORY_DISPLAY_LIMIT;
+  if (!historyShowAll && hidden > 0){
+    html += `<button type="button" class="list-toggle-link" id="btn-history-more">Alle ${sessionLog.length} Zyklen anzeigen (+${hidden})</button>`;
+  } else if (historyShowAll && hidden > 0){
+    html += `<button type="button" class="list-toggle-link" id="btn-history-less">Nur die letzten ${HISTORY_DISPLAY_LIMIT} anzeigen</button>`;
+  }
+  list.innerHTML = html;
+  const moreBtn = document.getElementById("btn-history-more");
+  if (moreBtn) moreBtn.addEventListener("click", () => { historyShowAll = true; renderHistory(); });
+  const lessBtn = document.getElementById("btn-history-less");
+  if (lessBtn) lessBtn.addEventListener("click", () => { historyShowAll = false; renderHistory(); });
 }
 
 function renderWeightsTable(){
@@ -3006,6 +3275,45 @@ function renderMoodSkilltreeTable(){
 // gesteuert hat (cycleMoodSelectionActive/moodSelectionActive). Das ist bewusst ein anderer Zähler
 // als moodXP: das Tagebuch beantwortet "wie oft hast du dich so gefühlt", der Skilltree/XP beantwortet
 // "wie oft hat dieses Gefühl tatsächlich den Vorschlag bestimmt UND danach geholfen" (siehe v0.40).
+// Wochen-Trend pro Stimmung (seit Nachschärfung nach v0.43) — die Brücke zwischen dem Emoji-Tagebuch
+// und der bisher komplett getrennten wöchentlichen Wirkungsmessung (v0.31): zeigt, ob eine Stimmung
+// diese Woche häufiger oder seltener auftaucht als letzte Woche. Rein deskriptiv, keine Wertung
+// ("besser"/"schlechter"), exakt wie computeOutcomeTrend() es für die Gesamtwoche schon hält — nur auf
+// einzelne Stimmungen heruntergebrochen. Liefert `null`, wenn in keiner der beiden Wochen Daten
+// vorliegen (kein leerer Trend-Hinweis ohne Aussagekraft).
+function computeMoodWeekTrend(moodKey){
+  const thisWeekLabel = getISOWeekLabel(new Date());
+  const lastWeekLabel = getPreviousISOWeekLabel(new Date());
+  let thisWeek = 0, lastWeek = 0;
+  sessionLog.forEach(e => {
+    if (e.entryMoodKeySelected !== moodKey || !e.isoDate) return;
+    const wk = isoDateStringToWeekLabel(e.isoDate);
+    if (wk === thisWeekLabel) thisWeek++;
+    else if (wk === lastWeekLabel) lastWeek++;
+  });
+  if (thisWeek === 0 && lastWeek === 0) return null;
+  return { thisWeek, lastWeek };
+}
+
+// Zweite Hälfte derselben Brücke: welche Stimmung war in einer bestimmten Woche am häufigsten gesetzt —
+// wird auf der Wirkungsmessungs-Karte neben der Gesamt-Einschätzung der Woche gezeigt (siehe
+// renderOutcome()). Rein informativ, keine Kausalaussage ("diese Stimmung hat die Woche verursacht"),
+// nur eine beschreibende Einordnung, gleiches Prinzip wie computeOutcomeTrend().
+function computeTopMoodForWeek(weekLabel){
+  const counts = {};
+  sessionLog.forEach(e => {
+    if (!e.entryMoodKeySelected || !e.isoDate) return;
+    if (isoDateStringToWeekLabel(e.isoDate) !== weekLabel) return;
+    counts[e.entryMoodKeySelected] = (counts[e.entryMoodKeySelected] || 0) + 1;
+  });
+  const keys = Object.keys(counts);
+  if (keys.length === 0) return null;
+  keys.sort((a, b) => counts[b] - counts[a]);
+  const topKey = keys[0];
+  const m = MOOD_OPTIONS.find(mm => mm.key === topKey);
+  return m ? { mood: m, count: counts[topKey] } : null;
+}
+
 function computeMoodDiary(){
   return MOOD_OPTIONS.map(m => {
     const entries = sessionLog.filter(e => e.entryMoodKeySelected === m.key);
@@ -3015,13 +3323,17 @@ function computeMoodDiary(){
       key: m.key,
       emoji: m.emoji,
       label: m.label,
+      clusterLabel: MOOD_CLUSTER_LABELS[m.cluster] || m.cluster,
       level: computeMoodLevel(moodXP[m.key] || 0),
       count: entries.length,
       lastTierId: last.tierId,
       lastTierName: last.tierName,
       lastTitle: last.title,
       lastQualiaLabel: last.qualiaLabel,
-      lastQualiaClass: last.qualiaClass
+      lastQualiaClass: last.qualiaClass,
+      // Seit Nachschärfung nach v0.43: Transparenz für Cross-Learning + Wochen-Trend, siehe oben.
+      crossLearningReceived: moodCrossLearningReceived[m.key] || 0,
+      weekTrend: computeMoodWeekTrend(m.key)
     };
   }).filter(Boolean);
 }
@@ -3043,6 +3355,14 @@ function computeTagIndex(){
 // Modul-Zustand für den aktuell aktiven Filter-Chip im Tagebuch — bewusst nicht in localStorage
 // persistiert (reine Anzeige-Interaktion für diesen Besuch, kein Datenfeld).
 let diaryTagFilter = null;
+// Aufräumen/Vernetzen-Durchgang (nach v0.43): gleiches Problem wie bei "Dein Verlauf" — ein häufig
+// benutzter Tag konnte die gefilterte Liste hier unbegrenzt lang werden lassen, direkt über der
+// (bis dahin ebenfalls unbegrenzten) "Dein Verlauf"-Karte. Gleicher Umschalter-Mechanismus, gleiche
+// Grenze (siehe HISTORY_DISPLAY_LIMIT) — bewusst zurückgesetzt bei jedem Tag-Wechsel (siehe
+// Klick-Handler unten), damit ein neuer Filter nicht versehentlich im "alles anzeigen"-Zustand des
+// vorherigen Tags startet.
+const DIARY_FILTER_DISPLAY_LIMIT = 8;
+let diaryFilteredShowAll = false;
 
 function renderDiary(){
   const card = document.getElementById("diary-card");
@@ -3050,20 +3370,36 @@ function renderDiary(){
   if (diary.length === 0){
     card.style.display = "none";
     diaryTagFilter = null;
+    diaryFilteredShowAll = false;
     return;
   }
   card.style.display = "";
 
   const moodsEl = document.getElementById("diary-moods");
-  moodsEl.innerHTML = diary.map(d => `
+  // Seit Nachschärfung nach v0.43: zweite, bewusst leisere Zeile pro Stimmung — Cross-Learning-
+  // Transparenz (wie oft von verwandten Stimmungen mitgelernt, inkl. welcher Cluster) und Wochen-Trend
+  // (Brücke zur wöchentlichen Wirkungsmessung, siehe computeMoodWeekTrend()). Nur gerendert, wenn es
+  // tatsächlich etwas zu zeigen gibt — kein leerer Platzhalter für Stimmungen ohne diese Daten.
+  moodsEl.innerHTML = diary.map(d => {
+    const extras = [];
+    if (d.crossLearningReceived > 0){
+      extras.push(`lernte ${d.crossLearningReceived}× von verwandten Stimmungen (${d.clusterLabel}) mit`);
+    }
+    if (d.weekTrend){
+      extras.push(`${d.weekTrend.thisWeek}× diese Woche · ${d.weekTrend.lastWeek}× letzte Woche`);
+    }
+    const extraLine = extras.length ? `<div class="diary-mood-extra">${extras.join(" · ")}</div>` : "";
+    return `
     <div class="diary-mood-row">
       <span class="diary-mood-emoji" aria-hidden="true">${d.emoji}</span>
       <div class="diary-mood-info">
         <div class="diary-mood-label">${d.label} <span class="mood-popover-level">Lv ${d.level}</span></div>
         <div class="diary-mood-meta">${d.count}× gewählt · zuletzt Ebene ${d.lastTierId} · ${d.lastTierName} — ${d.lastTitle} <span class="h-qualia ${d.lastQualiaClass}">${d.lastQualiaLabel}</span></div>
+        ${extraLine}
       </div>
     </div>
-  `).join("");
+  `;
+  }).join("");
 
   const tagIndex = computeTagIndex();
   // Nach Häufigkeit sortiert, auf die 12 häufigsten begrenzt — verhindert, dass die Chip-Zeile bei
@@ -3106,13 +3442,25 @@ function renderDiary(){
   const relatedEl = document.getElementById("diary-related");
   if (diaryTagFilter && tagIndex[diaryTagFilter]){
     const entries = tagIndex[diaryTagFilter];
-    filteredEl.innerHTML = `<div class="diary-filtered-label">#${diaryTagFilter} — ${entries.length} Zyklen</div>` + entries.map(e => `
+    const shownEntries = diaryFilteredShowAll ? entries : entries.slice(0, DIARY_FILTER_DISPLAY_LIMIT);
+    const hiddenEntries = entries.length - DIARY_FILTER_DISPLAY_LIMIT;
+    filteredEl.innerHTML = `<div class="diary-filtered-label">#${diaryTagFilter} — ${entries.length} Zyklen</div>` + shownEntries.map(e => `
       <div class="history-entry">
         <div class="h-num">${e.dateLabel || ""}<br>${e.timeLabel || ""}</div>
         <div class="h-main"><span class="h-tier-dot" style="background-color:var(--tier${e.tierId});" aria-hidden="true"></span>Ebene ${e.tierId} · ${e.tierName} — ${e.title}${e.entryMoodKeySelected ? ` ${(MOOD_OPTIONS.find(m => m.key === e.entryMoodKeySelected) || {}).emoji || ""}` : ""}</div>
         <div class="h-qualia ${e.qualiaClass}">${e.qualiaLabel}</div>
       </div>
-    `).join("");
+    `).join("") + (
+      !diaryFilteredShowAll && hiddenEntries > 0
+        ? `<button type="button" class="list-toggle-link" id="btn-diary-filtered-more">Alle ${entries.length} Zyklen mit #${diaryTagFilter} anzeigen (+${hiddenEntries})</button>`
+        : diaryFilteredShowAll && hiddenEntries > 0
+          ? `<button type="button" class="list-toggle-link" id="btn-diary-filtered-less">Nur die letzten ${DIARY_FILTER_DISPLAY_LIMIT} anzeigen</button>`
+          : ""
+    );
+    const filteredMoreBtn = document.getElementById("btn-diary-filtered-more");
+    if (filteredMoreBtn) filteredMoreBtn.addEventListener("click", () => { diaryFilteredShowAll = true; renderDiary(); });
+    const filteredLessBtn = document.getElementById("btn-diary-filtered-less");
+    if (filteredLessBtn) filteredLessBtn.addEventListener("click", () => { diaryFilteredShowAll = false; renderDiary(); });
 
     // "Ähnliche Aufgaben aus dem Inventar" (seit v0.42, dritte Hashtag-UX-Ergänzung neben Tag-Wolke
     // und Tag-Statistik): zeigt weitere Interventionen aus dem vollen INTERVENTIONS-Inventar, die
@@ -3156,7 +3504,9 @@ function buildBackupPayload(){
     reflections: dailyReflections,
     outcomes: weeklyOutcomes,
     moodWeights, // seit v0.40: pro Emoji unabhängiger Skilltree
-    moodXP       // seit v0.40: sichtbarer Fortschritt pro Emoji
+    moodXP,      // seit v0.40: sichtbarer Fortschritt pro Emoji
+    moodCrossLearningReceived, // seit Nachschärfung nach v0.43: Transparenz-Zähler
+    moodDirectFeedbackCount    // seit Nachschärfung nach v0.43: Grundlage für crossLearningFactorFor()
   };
 }
 
@@ -3274,6 +3624,26 @@ function applyImport(data){
     });
     saveMoodXP();
   }
+  // Seit Nachschärfung nach v0.43: gleiches Auffüll-Prinzip — Sicherungen von vor diesem Schritt haben
+  // diese Felder schlicht nicht, bleiben dann beim aktuellen bzw. Default-Wert (0).
+  if (data.moodCrossLearningReceived && typeof data.moodCrossLearningReceived === "object"){
+    MOOD_OPTIONS.forEach(m => {
+      if (typeof data.moodCrossLearningReceived[m.key] === "number") moodCrossLearningReceived[m.key] = data.moodCrossLearningReceived[m.key];
+    });
+    saveMoodCrossLearningReceived();
+  }
+  if (data.moodDirectFeedbackCount && typeof data.moodDirectFeedbackCount === "object"){
+    MOOD_OPTIONS.forEach(m => {
+      if (typeof data.moodDirectFeedbackCount[m.key] === "number") moodDirectFeedbackCount[m.key] = data.moodDirectFeedbackCount[m.key];
+    });
+    saveMoodDirectFeedbackCount();
+  }
+  // Aufräumen/Vernetzen-Durchgang (nach v0.43): Anzeige-Zustand der neuen Verlauf-/Tagebuch-Umschalter
+  // (siehe HISTORY_DISPLAY_LIMIT-Kommentar) gehört nicht zu den importierten Daten selbst — ein Import
+  // soll wie ein frischer Seitenaufruf wirken, nicht im "alles anzeigen"-Zustand einer vorherigen Sitzung.
+  historyShowAll = false;
+  diaryTagFilter = null;
+  diaryFilteredShowAll = false;
   renderWeightsTable();
   renderSensitivityTable();
   renderMoodSkilltreeTable();
@@ -3326,11 +3696,20 @@ document.getElementById("btn-reset-all").addEventListener("click", () => {
   `;
   document.getElementById("btn-confirm-reset").addEventListener("click", () => {
     resetAllData();
+    // resetAllData() rendert Verlauf/Fortschritt/Tagesabschluss/Wirkungsmessung bereits selbst neu
+    // (siehe dort) — hier zusätzlich die drei Tabellen/den Popover sowie das Tagebuch, die
+    // resetAllData() bewusst nicht kennt (reine Anzeige-Zuständigkeit dieses Klick-Handlers).
     renderWeightsTable();
     renderSensitivityTable();
     renderMoodSkilltreeTable();
     updateMoodPopoverLevels();
     diaryTagFilter = null;
+    // Aufräumen/Vernetzen-Durchgang (nach v0.43): die beiden neuen Verlauf-/Tagebuch-Umschalter (siehe
+    // HISTORY_DISPLAY_LIMIT-Kommentar) sind reiner Anzeige-Zustand für diesen Besuch, kein von
+    // resetAllData() verwalteter Datenwert — nach einem Reset gibt es ohnehin nichts mehr aufzuklappen,
+    // aber sie sollen nicht in einem "alles anzeigen"-Zustand der gelöschten Sitzung hängen bleiben.
+    diaryFilteredShowAll = false;
+    historyShowAll = false;
     renderDiary();
     statusEl.innerHTML = `<span style="color:var(--accent);">Alle Daten wurden gelöscht.</span>`;
   });
@@ -3362,6 +3741,7 @@ document.getElementById("diary-tags").addEventListener("click", (e) => {
   if (!btn) return;
   const tag = btn.dataset.tag;
   diaryTagFilter = (diaryTagFilter === tag) ? null : tag;
+  diaryFilteredShowAll = false; // neuer Tag (oder Filter aufgehoben) startet nicht im "alles anzeigen"-Zustand des vorherigen Tags
   renderDiary();
 });
 renderProgress();
